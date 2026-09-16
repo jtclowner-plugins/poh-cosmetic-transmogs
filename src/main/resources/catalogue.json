@@ -792,7 +792,8 @@
         "CRYSTALS": [107, 127, 123, 115]
       },
       "placements": {
-        "cape_rack,armour_case": {"scaleX": 64, "scaleY": 64},
+        "cape_rack": {"scaleX": 64, "scaleY": 64},
+        "armour_case": {"scaleX": 58, "scaleHeight": 115, "scaleY": 58, "offsetY": 16},
         "treasure_chest,toy_box": {"scaleX": 80, "scaleY": 64, "offsetY": 16},
         "fancy_dress_box": {}
       }
@@ -806,7 +807,8 @@
         "CRYSTALS": [15296, 15273, 15029, 16163]
       },
       "placements": {
-        "cape_rack,armour_case": {"scaleX": 64, "scaleY": 64},
+        "cape_rack": {"scaleX": 64, "scaleY": 64},
+        "armour_case": {"scaleX": 58, "scaleHeight": 115, "scaleY": 58, "offsetY": 16},
         "treasure_chest,toy_box": {"scaleX": 80, "scaleY": 64, "offsetY": 16},
         "fancy_dress_box": {}
       }
