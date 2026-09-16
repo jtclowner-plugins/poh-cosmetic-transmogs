@@ -23,7 +23,8 @@
     "armour_case": {
       "objectIds": [18778, 18779, 18780, 18781, 18782, 18783],
       "openObjectIds": [18779, 18781, 18783],
-      "orientationOffset": 512
+      "orientationOffset": 512,
+      "scaleTransition": true
     },
     "toy_box": {
       "objectIds": [18798, 18799, 18800, 18801, 18802, 18803],
@@ -792,7 +793,7 @@
       },
       "placements": {
         "cape_rack,armour_case": {"scaleX": 64, "scaleY": 64},
-        "treasure_chest,toy_box": {"scaleX": 80, "scaleY": 64, "offsetY": 26},
+        "treasure_chest,toy_box": {"scaleX": 80, "scaleY": 64, "offsetY": 16},
         "fancy_dress_box": {}
       }
     },
@@ -806,7 +807,7 @@
       },
       "placements": {
         "cape_rack,armour_case": {"scaleX": 64, "scaleY": 64},
-        "treasure_chest,toy_box": {"scaleX": 80, "scaleY": 64, "offsetY": 26},
+        "treasure_chest,toy_box": {"scaleX": 80, "scaleY": 64, "offsetY": 16},
         "fancy_dress_box": {}
       }
     },

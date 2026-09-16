@@ -501,6 +501,37 @@ public class ManagerTest
 	}
 
 	@Test
+	public void armourCaseCrystalsGrowOnOpeningAndShrinkOnClosing()
+	{
+		for (String key : new String[] {"colourless_crystal", "cox_large_crystal", "crystal_outcrop"})
+		{
+			Harness h = new Harness("");
+			Catalogue catalogue = Catalogue.loadCatalogue(RuneLiteAPI.GSON, Catalogue.openCatalogueReader());
+			h.manager.setCatalogue(catalogue);
+			h.manager.setSelections(Map.of("armour_case", key));
+			GameObject closed = h.object(18778);
+			h.manager.addObject(closed);
+			h.manager.removeObject(closed);
+			GameObject open = h.object(18779);
+			h.manager.addObject(open);
+			RuneLiteObject replacement = h.only();
+			assertNotNull(key, replacement.getAnimationController());
+			replacement.tick(30);
+			h.operations.clear();
+			replacement.getModel();
+			assertTrue(key, h.operations.contains("scale:160:160:160"));
+			h.manager.removeObject(open);
+			h.manager.addObject(h.object(18778));
+			replacement = h.only();
+			replacement.tick(30);
+			h.operations.clear();
+			replacement.getModel();
+			assertTrue(key, h.operations.contains("scale:128:128:128"));
+			h.manager.stop();
+		}
+	}
+
+	@Test
 	public void scaleTransitionsKeepTheBottomFixedAndReverse()
 	{
 		Harness h = new Harness("");
