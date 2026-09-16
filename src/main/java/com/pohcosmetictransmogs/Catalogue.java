@@ -402,6 +402,11 @@ final class Catalogue
 					|| config.recolourPortalsInAllPositions());
 		}
 
+		int nodePortalAccountType()
+		{
+			return config.recolourNodePortal() ? client.getVarbitValue(VarbitID.IRONMAN) : -1;
+		}
+
 		@Nullable
 		Model load(TargetSpec target, Definition definition, Calibration calibration)
 		{

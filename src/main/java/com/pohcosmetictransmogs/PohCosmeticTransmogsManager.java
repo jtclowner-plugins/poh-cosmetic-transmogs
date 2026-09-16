@@ -73,6 +73,7 @@ class PohCosmeticTransmogsManager
 	private boolean snapshotsDirty;
 	private boolean fullSceneScanPending;
 	private DrawCallbacks renderer;
+	private int nodePortalAccountType;
 
 	@Inject
 	PohCosmeticTransmogsManager(Client client, PohCosmeticTransmogsConfig config)
@@ -85,6 +86,7 @@ class PohCosmeticTransmogsManager
 	{
 		DrawCallbacks callbacks = client.getDrawCallbacks();
 		renderer = callbacks;
+		nodePortalAccountType = modelFactory.nodePortalAccountType();
 		log.debug("Starting PoH furniture transmogs with renderer {}",
 			callbacks == null ? "software" : callbacks.getClass().getName());
 		this.hidden = hidden;
@@ -195,6 +197,7 @@ class PohCosmeticTransmogsManager
 		beginZoneInvalidationBatch();
 		try
 		{
+			nodePortalAccountType = modelFactory.nodePortalAccountType();
 			modelCache.clear();
 			refreshAllObjects();
 		}
@@ -470,6 +473,14 @@ class PohCosmeticTransmogsManager
 			{
 				endZoneInvalidationBatch();
 			}
+		}
+	}
+
+	void refreshAccountType()
+	{
+		if (running && modelFactory.nodePortalAccountType() != nodePortalAccountType)
+		{
+			refreshColours();
 		}
 	}
 

@@ -15,6 +15,9 @@ import net.runelite.api.events.GameObjectDespawned;
 import net.runelite.api.events.GameObjectSpawned;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
+import net.runelite.api.events.VarbitChanged;
+import net.runelite.api.gameval.VarbitID;
+import net.runelite.api.gameval.VarPlayerID;
 import net.runelite.api.events.WorldViewLoaded;
 import net.runelite.api.events.WorldViewUnloaded;
 import net.runelite.client.callback.ClientThread;
@@ -210,8 +213,17 @@ public class PohCosmeticTransmogsPlugin extends Plugin
 		}
 		else if (event.getGameState() == GameState.LOGGED_IN)
 		{
-			manager.refreshColours();
+			manager.refreshAccountType();
 			manager.scheduleSceneScan();
+		}
+	}
+
+	@Subscribe
+	public void onVarbitChanged(VarbitChanged event)
+	{
+		if (event.getVarbitId() == VarbitID.IRONMAN || event.getVarpId() == VarPlayerID.IRONMAN_VAR_1)
+		{
+			manager.refreshAccountType();
 		}
 	}
 

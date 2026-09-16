@@ -930,6 +930,40 @@ public class ManagerTest
 		assertEquals(1, h.invalidations);
 	}
 
+	@Test
+	public void sceneEstablishmentReusesModelsWhenAccountInputsAreUnchanged()
+	{
+		Harness h = new Harness("");
+		GameObject object = h.object(1);
+		h.manager.addObject(object);
+		Model model = h.only().getModel();
+		h.manager.clearSceneState();
+		h.manager.refreshAccountType();
+		h.manager.addObject(object);
+		assertSame(model, h.only().getModel());
+		assertEquals(1, h.lights);
+		h.manager.refreshAccountType();
+		assertEquals(1, h.lights);
+	}
+
+	@Test
+	public void accountChangesRebuildModelsOnlyWhenNodeRecolourIsEnabled()
+	{
+		for (boolean enabled : new boolean[] {false, true})
+		{
+			Harness h = new Harness("", new PohCosmeticTransmogsConfig()
+			{
+				@Override public boolean recolourNodePortal() { return enabled; }
+			});
+			h.manager.addObject(h.object(1));
+			h.accountType = 1;
+			h.manager.refreshAccountType();
+			assertEquals(enabled ? 2 : 1, h.lights);
+			h.manager.refreshAccountType();
+			assertEquals(enabled ? 2 : 1, h.lights);
+		}
+	}
+
 	private static final class ChildWorld
 	{
 		final List<GameObject> loaded = new ArrayList<>();
@@ -977,6 +1011,7 @@ public class ManagerTest
 		final PohCosmeticTransmogsManager manager;
 		WorldView objectWorld;
 		int missingAnimationId = -1;
+		int accountType;
 		boolean modelsAvailable = true;
 		boolean gpu = true;
 		boolean callbacksAvailable = true;
@@ -1048,6 +1083,7 @@ public class ManagerTest
 						animationLoads++;
 						return (int) args[0] == missingAnimationId ? null : animation((int) args[0]);
 					case "getGameState": return gameState;
+					case "getVarbitValue": return accountType;
 					case "getCameraFpX": return 704f;
 					case "getViewportWidth": return 800;
 					case "getViewportHeight": return 600;
