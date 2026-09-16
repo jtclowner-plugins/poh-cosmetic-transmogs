@@ -715,6 +715,221 @@ public class ManagerTest
 		assertEquals(1, h.active.size());
 	}
 
+	@Test
+	public void missingModelsInvalidateOnlyWhenSuppressionChanges()
+	{
+		Harness h = new Harness("");
+		GameObject object = h.object(1);
+		h.modelsAvailable = false;
+		h.manager.addObject(object);
+		h.manager.loadMissingModels();
+		h.manager.loadMissingModels();
+		assertEquals(0, h.invalidations);
+		h.modelsAvailable = true;
+		h.onInvalidation = () -> assertFalse(h.manager.shouldDrawObject(object));
+		h.manager.loadMissingModels();
+		assertEquals(1, h.invalidations);
+		h.modelsAvailable = false;
+		h.onInvalidation = () -> assertTrue(h.manager.shouldDrawObject(object));
+		h.manager.refreshColours();
+		assertEquals(2, h.invalidations);
+		h.manager.loadMissingModels();
+		h.manager.loadMissingModels();
+		assertEquals(2, h.invalidations);
+		assertTrue(h.active.isEmpty());
+	}
+
+	@Test
+	public void visibilityChangesKeepOriginalSuppressionWithoutRebuildingZones()
+	{
+		Harness h = new Harness("");
+		h.worldPlane = 1;
+		GameObject object = h.object(1);
+		h.manager.addObject(object);
+		assertEquals(1, h.invalidations);
+		assertTrue(h.active.isEmpty());
+		h.manager.syncVisibleLevels();
+		h.manager.setHidden(false);
+		assertEquals(1, h.invalidations);
+		h.worldPlane = 0;
+		h.manager.syncVisibleLevels();
+		assertEquals(1, h.active.size());
+		assertEquals(1, h.invalidations);
+		h.worldPlane = 1;
+		h.manager.syncVisibleLevels();
+		assertTrue(h.active.isEmpty());
+		assertEquals(1, h.invalidations);
+		assertFalse(h.manager.shouldDrawObject(object));
+	}
+
+	@Test
+	public void replacementModelAndPlacementChangesDoNotInvalidateSuppressedScenery()
+	{
+		Harness h = new Harness("");
+		h.manager.addObject(h.object(1));
+		RuneLiteObject previous = h.only();
+		h.manager.refreshColours();
+		assertNotSame(previous, h.only());
+		assertEquals(2, h.lights);
+		previous = h.only();
+		h.orientation = 512;
+		h.manager.setHidden(false);
+		assertNotSame(previous, h.only());
+		assertEquals(512, h.only().getOrientation());
+		assertEquals(1, h.invalidations);
+	}
+
+	@Test
+	public void disablingAndRestoringASelectionInvalidatesEachSuppressionChange()
+	{
+		Harness h = new Harness("");
+		h.manager.stop();
+		Catalogue.current.appearances.get("gem").bindTargets = new String[0];
+		h.manager.start(Map.of("box", "gem"), false);
+		GameObject object = h.object(1);
+		h.loaded.add(object);
+		h.manager.addObject(object);
+		assertEquals(1, h.invalidations);
+		h.manager.setSelections(Collections.emptyMap());
+		assertTrue(h.manager.shouldDrawObject(object));
+		assertEquals(2, h.invalidations);
+		h.manager.setSelections(Collections.emptyMap());
+		assertEquals(2, h.invalidations);
+		h.manager.setSelections(Map.of("box", "gem"));
+		assertFalse(h.manager.shouldDrawObject(object));
+		assertEquals(3, h.invalidations);
+	}
+
+	@Test
+	public void suppressionChangesArePublishedBeforeOneInvalidationPerZone()
+	{
+		Harness h = new Harness("");
+		h.loaded.add(h.object(1, null, new Point(5, 5)));
+		h.loaded.add(h.object(1, null, new Point(6, 5)));
+		h.loaded.add(h.object(1, null, new Point(17, 5)));
+		h.onInvalidation = () -> h.loaded.forEach(object -> assertFalse(h.manager.shouldDrawObject(object)));
+		h.manager.scheduleSceneScan();
+		h.manager.scanPendingWorldViews();
+		assertEquals(3, h.active.size());
+		assertEquals(2, h.invalidations);
+		h.onInvalidation = () -> h.loaded.forEach(object -> assertTrue(h.manager.shouldDrawObject(object)));
+		h.manager.setHidden(true);
+		assertEquals(4, h.invalidations);
+		h.manager.setHidden(true);
+		assertEquals(4, h.invalidations);
+		h.onInvalidation = () -> h.loaded.forEach(object -> assertFalse(h.manager.shouldDrawObject(object)));
+		h.manager.setHidden(false);
+		assertEquals(6, h.invalidations);
+		h.onInvalidation = () -> h.loaded.forEach(object -> assertTrue(h.manager.shouldDrawObject(object)));
+		h.manager.stop();
+		assertEquals(8, h.invalidations);
+		h.manager.stop();
+		assertEquals(8, h.invalidations);
+	}
+
+	@Test
+	public void rendererChangeInvalidatesSuppressedZonesOnceWithoutRecreatingObjects()
+	{
+		Harness h = new Harness("");
+		GameObject object = h.object(1);
+		h.manager.addObject(object);
+		RuneLiteObject replacement = h.only();
+		h.manager.syncRenderer();
+		assertEquals(1, h.invalidations);
+		h.callbacks = h.newRenderer();
+		h.onInvalidation = () -> assertFalse(h.manager.shouldDrawObject(object));
+		h.manager.syncRenderer();
+		assertEquals(2, h.invalidations);
+		assertSame(replacement, h.only());
+		h.manager.syncRenderer();
+		assertEquals(2, h.invalidations);
+		h.onInvalidation = () -> assertTrue(h.manager.shouldDrawObject(object));
+		h.manager.setHidden(true);
+		assertEquals(3, h.invalidations);
+		h.callbacks = h.newRenderer();
+		h.manager.syncRenderer();
+		assertEquals(3, h.invalidations);
+	}
+
+	@Test
+	public void bulkRebuildInvalidatesOnlyTheFinalSuppressionDifference()
+	{
+		Harness h = new Harness("");
+		GameObject object = h.object(1);
+		h.loaded.add(object);
+		h.manager.addObject(object);
+		RuneLiteObject previous = h.only();
+		h.manager.setCatalogue(Catalogue.current);
+		assertNotSame(previous, h.only());
+		assertEquals(1, h.invalidations);
+		assertFalse(h.manager.shouldDrawObject(object));
+		Catalogue.current.appearances.get("gem").bindTargets = new String[0];
+		h.onInvalidation = () -> assertTrue(h.manager.shouldDrawObject(object));
+		h.manager.setCatalogue(Catalogue.current);
+		assertEquals(2, h.invalidations);
+		assertTrue(h.active.isEmpty());
+	}
+
+	@Test
+	public void shutdownRestoresRetiredSceneryEvenWhenTheNewStateHasNoModel()
+	{
+		Harness h = new Harness("\"open\":{\"modelIds\":[20]},");
+		GameObject closed = h.object(1);
+		GameObject open = h.object(2);
+		h.manager.addObject(closed);
+		h.modelsAvailable = false;
+		h.manager.addObject(open);
+		assertFalse(h.manager.shouldDrawObject(closed));
+		assertTrue(h.manager.shouldDrawObject(open));
+		assertEquals(1, h.invalidations);
+		h.onInvalidation = () ->
+		{
+			assertTrue(h.manager.shouldDrawObject(closed));
+			assertTrue(h.manager.shouldDrawObject(open));
+		};
+		h.manager.stop();
+		assertEquals(2, h.invalidations);
+	}
+
+	@Test
+	public void rendererInvalidationKeepsChildScenesDistinctFromTheTopLevel()
+	{
+		Harness h = new Harness("");
+		ChildWorld child = new ChildWorld(7);
+		h.manager.addObject(h.object(1));
+		h.manager.addObject(h.object(1, child.world));
+		assertEquals(2, h.invalidations);
+		h.invalidatedScenes.clear();
+		h.callbacks = h.newRenderer();
+		h.manager.syncRenderer();
+		assertEquals(4, h.invalidations);
+		assertTrue(h.invalidatedScenes.contains(h.world.getScene()));
+		assertTrue(h.invalidatedScenes.contains(child.world.getScene()));
+	}
+
+	@Test
+	public void hiddenObjectsAndDespawnedObjectsDoNotRequestZoneRebuilds()
+	{
+		Harness h = new Harness("");
+		h.manager.setHidden(true);
+		GameObject closed = h.object(1);
+		GameObject open = h.object(2);
+		h.manager.addObject(closed);
+		h.manager.addObject(open);
+		h.manager.refreshColours();
+		assertTrue(h.manager.shouldDrawObject(closed));
+		assertTrue(h.manager.shouldDrawObject(open));
+		assertEquals(0, h.invalidations);
+		h.manager.setHidden(false);
+		assertEquals(1, h.invalidations);
+		h.manager.removeObject(closed);
+		h.manager.removeObject(open);
+		assertEquals(1, h.invalidations);
+		assertTrue(h.active.isEmpty());
+		h.manager.stop();
+		assertEquals(1, h.invalidations);
+	}
+
 	private static final class ChildWorld
 	{
 		final List<GameObject> loaded = new ArrayList<>();
@@ -754,6 +969,9 @@ public class ManagerTest
 		final List<String> operations = new ArrayList<>();
 		final List<GameObject> loaded = new ArrayList<>();
 		final List<WorldView> children = new ArrayList<>();
+		final List<Scene> invalidatedScenes = new ArrayList<>();
+		Runnable onInvalidation = () -> { };
+		DrawCallbacks callbacks;
 		final Client client;
 		final WorldView world;
 		final PohCosmeticTransmogsManager manager;
@@ -810,11 +1028,7 @@ public class ManagerTest
 					default: return DEFAULT;
 				}
 			});
-			DrawCallbacks callbacks = ApiDouble.of(DrawCallbacks.class, (name, args) ->
-			{
-				if (name.equals("invalidateZone")) { invalidations++; }
-				return DEFAULT;
-			});
+			callbacks = newRenderer();
 			client = ApiDouble.of(Client.class, (name, args) ->
 			{
 				switch (name)
@@ -850,6 +1064,20 @@ public class ManagerTest
 
 		Client client() { return client; }
 
+		DrawCallbacks newRenderer()
+		{
+			return ApiDouble.of(DrawCallbacks.class, (name, args) ->
+			{
+				if (name.equals("invalidateZone"))
+				{
+					invalidations++;
+					invalidatedScenes.add((Scene) args[0]);
+					onInvalidation.run();
+				}
+				return DEFAULT;
+			});
+		}
+
 		RuneLiteObject only()
 		{
 			assertEquals(1, active.size());
@@ -863,14 +1091,21 @@ public class ManagerTest
 
 		GameObject object(int id, WorldView view)
 		{
+			return object(id, view, null);
+		}
+
+		GameObject object(int id, WorldView view, Point fixedLocation)
+		{
 			return ApiDouble.of(GameObject.class, (name, args) ->
 			{
 				switch (name)
 				{
 					case "getId": return id;
 					case "getWorldView": return view != null ? view : objectWorld == null ? world : objectWorld;
-					case "getSceneMinLocation": return new Point(sceneX, sceneY);
-					case "getSceneMaxLocation": return new Point(sceneX - 1 + sizeX, sceneY - 1 + sizeY);
+					case "getSceneMinLocation": return fixedLocation == null ? new Point(sceneX, sceneY) : fixedLocation;
+					case "getSceneMaxLocation": return fixedLocation == null
+						? new Point(sceneX - 1 + sizeX, sceneY - 1 + sizeY)
+						: new Point(fixedLocation.getX() - 1 + sizeX, fixedLocation.getY() - 1 + sizeY);
 					case "getPlane": return objectPlane;
 					case "getZ": return z;
 					case "sizeX": return sizeX;

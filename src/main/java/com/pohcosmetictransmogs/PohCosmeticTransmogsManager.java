@@ -60,6 +60,7 @@ class PohCosmeticTransmogsManager
 	private final Set<WorldView> worldViews = identitySet();
 	private final Set<WorldView> pendingSceneScans = identitySet();
 	private final Set<ZoneKey> pendingZoneInvalidations = new HashSet<>();
+	private final Set<TileObject> pendingSuppressionChanges = identitySet();
 	private final Map<Integer, Integer> visiblePlanes = new HashMap<>();
 	private final Set<String> playedSpawnAnimations = new HashSet<>();
 	private volatile Set<TileObject> suppressedSnapshot = Collections.emptySet();
@@ -71,6 +72,7 @@ class PohCosmeticTransmogsManager
 	private int zoneInvalidationBatchDepth;
 	private boolean snapshotsDirty;
 	private boolean fullSceneScanPending;
+	private DrawCallbacks renderer;
 
 	@Inject
 	PohCosmeticTransmogsManager(Client client, PohCosmeticTransmogsConfig config)
@@ -82,6 +84,7 @@ class PohCosmeticTransmogsManager
 	void start(Map<String, String> initialSelections, boolean hidden)
 	{
 		DrawCallbacks callbacks = client.getDrawCallbacks();
+		renderer = callbacks;
 		log.debug("Starting PoH furniture transmogs with renderer {}",
 			callbacks == null ? "software" : callbacks.getClass().getName());
 		this.hidden = hidden;
@@ -103,9 +106,8 @@ class PohCosmeticTransmogsManager
 	void stop()
 	{
 		running = false;
-		deactivateAll();
-		// Rebuild cached scenery after removing replacements and ending suppression.
-		invalidateAllKnownZones();
+		restoreOriginals();
+		renderer = null;
 		sceneObjects.clear();
 		scenePlacements.clear();
 		recentDespawnedStates.clear();
@@ -120,6 +122,7 @@ class PohCosmeticTransmogsManager
 		playedSpawnAnimations.clear();
 		selections.clear();
 		pendingZoneInvalidations.clear();
+		pendingSuppressionChanges.clear();
 		zoneInvalidationBatchDepth = 0;
 		snapshotsDirty = false;
 		pendingModels.clear();
@@ -149,14 +152,21 @@ class PohCosmeticTransmogsManager
 		{
 			return;
 		}
-		deactivateAll();
-		invalidateAllKnownZones();
-		clearSceneState();
-		modelCache.clear();
-		reportedModelFailures.clear();
-		pendingModels.clear();
-		rebuildTargets();
-		rescanLoadedWorldViews();
+		beginZoneInvalidationBatch();
+		try
+		{
+			restoreOriginals();
+			clearSceneState();
+			modelCache.clear();
+			reportedModelFailures.clear();
+			pendingModels.clear();
+			rebuildTargets();
+			rescanLoadedWorldViews();
+		}
+		finally
+		{
+			endZoneInvalidationBatch();
+		}
 	}
 
 	void setHidden(boolean hidden)
@@ -168,8 +178,7 @@ class PohCosmeticTransmogsManager
 		this.hidden = hidden;
 		if (hidden)
 		{
-			deactivateAll();
-			invalidateAllKnownZones();
+			restoreOriginals();
 		}
 		else
 		{
@@ -223,37 +232,44 @@ class PohCosmeticTransmogsManager
 			return;
 		}
 
-		// Construction state changes may spawn the new GameObject before the old
-		// one despawns. Retire the indexed prior state for this exact placement.
-		PlacementKey placement = new PlacementKey(gameObject, target);
-		TileObject candidate = scenePlacements.get(placement);
-		Integer recentState = recentDespawnedStates.remove(placement);
-		int previousId = candidate != null && candidate != object
-			? candidate.getId() : recentState == null ? -1 : recentState;
-		boolean stateTransition = previousId >= 0
-			&& target == targetsById.get(previousId)
-			&& target.target.isOpen(previousId) != target.target.isOpen(object.getId());
-		boolean opening = target.target.isOpen(object.getId());
-		if (candidate != null && candidate != object)
+		beginZoneInvalidationBatch();
+		try
 		{
-			// Suppress the retired state until its despawn event so it cannot flash.
-			retiredObjects.add(candidate);
-			suppressedObjects.add(candidate);
-			deactivate(candidate);
-			sceneObjects.remove(candidate);
-			publishSnapshots();
-		}
-		if (sceneObjects.add(object))
-		{
-			scenePlacements.put(placement, object);
-			worldViews.add(object.getWorldView());
-			log.debug("Matched target object {} in world view {}",
-				object.getId(), object.getWorldView());
-			refreshObject(object);
-			if (stateTransition)
+			// Construction state changes may spawn the new GameObject before the old
+			// one despawns. Retire the indexed prior state for this exact placement.
+			PlacementKey placement = new PlacementKey(gameObject, target);
+			TileObject candidate = scenePlacements.get(placement);
+			Integer recentState = recentDespawnedStates.remove(placement);
+			int previousId = candidate != null && candidate != object
+				? candidate.getId() : recentState == null ? -1 : recentState;
+			boolean stateTransition = previousId >= 0
+				&& target == targetsById.get(previousId)
+				&& target.target.isOpen(previousId) != target.target.isOpen(object.getId());
+			boolean opening = target.target.isOpen(object.getId());
+			if (candidate != null && candidate != object)
 			{
-				transition(object, target, opening);
+				// Suppress the retired state until its despawn event so it cannot flash.
+				retiredObjects.add(candidate);
+				deactivate(candidate);
+				sceneObjects.remove(candidate);
+				setSuppressed(candidate, !hidden);
 			}
+			if (sceneObjects.add(object))
+			{
+				scenePlacements.put(placement, object);
+				worldViews.add(object.getWorldView());
+				log.debug("Matched target object {} in world view {}",
+					object.getId(), object.getWorldView());
+				refreshObject(object);
+				if (stateTransition)
+				{
+					transition(object, target, opening);
+				}
+			}
+		}
+		finally
+		{
+			endZoneInvalidationBatch();
 		}
 	}
 
@@ -454,6 +470,17 @@ class PohCosmeticTransmogsManager
 		return isSupportedRenderer(client.getDrawCallbacks());
 	}
 
+	void syncRenderer()
+	{
+		DrawCallbacks callbacks = client.getDrawCallbacks();
+		if (!running || callbacks == renderer || !isSupportedRenderer(callbacks))
+		{
+			return;
+		}
+		renderer = callbacks;
+		invalidateSuppressedZones();
+	}
+
 	private boolean isSupportedRenderer(@Nullable DrawCallbacks callbacks)
 	{
 		// GPU Legacy does not consult the object-suppression render callback.
@@ -550,10 +577,8 @@ class PohCosmeticTransmogsManager
 			deactivate(object);
 			if (!retiredObjects.contains(object))
 			{
-				suppressedObjects.remove(object);
-				publishSnapshots();
+				setSuppressed(object, false);
 			}
-			invalidateZone(object);
 			return;
 		}
 		Catalogue.Definition definition = resolved.definition;
@@ -563,9 +588,7 @@ class PohCosmeticTransmogsManager
 		if (worldView == null || !isVisibleLevel(object.getPlane(), worldView.getPlane()))
 		{
 			deactivate(object);
-			suppressedObjects.add(object);
-			publishSnapshots();
-			invalidateZone(object);
+			setSuppressed(object, true);
 			return;
 		}
 
@@ -689,7 +712,11 @@ class PohCosmeticTransmogsManager
 		}
 		log.debug("Activated appearance {} for target object {}",
 			appearanceKey, object.getId());
-		invalidateZone(object);
+		// Replacements are drawn dynamically; only original scenery is zone-cached.
+		if (newlySuppressed)
+		{
+			suppressionChanged(object);
+		}
 	}
 
 	@Nullable
@@ -978,12 +1005,51 @@ class PohCosmeticTransmogsManager
 		return Collections.unmodifiableSet(snapshot);
 	}
 
-	private void invalidateAllKnownZones()
+	private void setSuppressed(TileObject object, boolean suppressed)
+	{
+		boolean changed = suppressed ? suppressedObjects.add(object) : suppressedObjects.remove(object);
+		if (changed)
+		{
+			publishSnapshots();
+			suppressionChanged(object);
+		}
+	}
+
+	private void suppressionChanged(TileObject object)
+	{
+		if (zoneInvalidationBatchDepth == 0)
+		{
+			invalidateZone(object);
+		}
+		else
+		{
+			pendingSuppressionChanges.add(object);
+		}
+	}
+
+	private void restoreOriginals()
 	{
 		beginZoneInvalidationBatch();
 		try
 		{
-			for (TileObject object : sceneObjects)
+			for (TileObject object : suppressedObjects)
+			{
+				suppressionChanged(object);
+			}
+			deactivateAll();
+		}
+		finally
+		{
+			endZoneInvalidationBatch();
+		}
+	}
+
+	private void invalidateSuppressedZones()
+	{
+		beginZoneInvalidationBatch();
+		try
+		{
+			for (TileObject object : suppressedObjects)
 			{
 				invalidateZone(object);
 			}
@@ -1036,6 +1102,18 @@ class PohCosmeticTransmogsManager
 
 	private void endZoneInvalidationBatch()
 	{
+		if (zoneInvalidationBatchDepth == 1)
+		{
+			for (TileObject object : pendingSuppressionChanges)
+			{
+				// Ignore transient changes that never reached the render callback's snapshot.
+				if (suppressedSnapshot.contains(object) != suppressedObjects.contains(object))
+				{
+					invalidateZone(object);
+				}
+			}
+			pendingSuppressionChanges.clear();
+		}
 		if (--zoneInvalidationBatchDepth != 0)
 		{
 			return;

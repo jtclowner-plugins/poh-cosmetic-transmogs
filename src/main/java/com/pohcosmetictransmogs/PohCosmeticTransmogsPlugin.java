@@ -254,6 +254,10 @@ public class PohCosmeticTransmogsPlugin extends Plugin
 				managerStarted = true;
 				updateShapeOverlay();
 			}
+			else
+			{
+				manager.syncRenderer();
+			}
 		}
 		else
 		{
