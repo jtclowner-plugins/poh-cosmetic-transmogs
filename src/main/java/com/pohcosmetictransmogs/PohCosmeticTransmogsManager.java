@@ -58,11 +58,10 @@ class PohCosmeticTransmogsManager
 	private final Map<RuneLiteObject, RuneLiteObject> transitionEffects = new IdentityHashMap<>();
 	private final Map<PlacementKey, TileObject> scenePlacements = new HashMap<>();
 	private final Map<PlacementKey, Integer> recentDespawnedStates = new HashMap<>();
-	private final Set<WorldView> worldViews = identitySet();
+	private final Map<WorldView, Integer> worldViews = new IdentityHashMap<>();
 	private final Set<WorldView> pendingSceneScans = identitySet();
 	private final Set<ZoneKey> pendingZoneInvalidations = new HashSet<>();
 	private final Set<TileObject> pendingSuppressionChanges = identitySet();
-	private final Map<WorldView, Integer> visiblePlanes = new IdentityHashMap<>();
 	private final Set<String> playedSpawnAnimations = new HashSet<>();
 	private volatile Set<TileObject> suppressedSnapshot = Collections.emptySet();
 	private volatile Set<TileObject> activeSnapshot = Collections.emptySet();
@@ -113,24 +112,15 @@ class PohCosmeticTransmogsManager
 		running = false;
 		restoreOriginals();
 		renderer = null;
-		sceneObjects.clear();
-		scenePlacements.clear();
-		recentDespawnedStates.clear();
-		worldViews.clear();
-		pendingSceneScans.clear();
-		fullSceneScanPending = false;
-		retiredObjects.clear();
+		clearSceneState();
 		modelCache.clear();
 		targetsById.clear();
 		reportedModelFailures.clear();
-		visiblePlanes.clear();
-		playedSpawnAnimations.clear();
 		selections.clear();
 		pendingZoneInvalidations.clear();
 		pendingSuppressionChanges.clear();
 		zoneInvalidationBatchDepth = 0;
 		snapshotsDirty = false;
-		pendingModels.clear();
 	}
 
 	void setSelections(Map<String, String> updated)
@@ -164,7 +154,6 @@ class PohCosmeticTransmogsManager
 			clearSceneState();
 			modelCache.clear();
 			reportedModelFailures.clear();
-			pendingModels.clear();
 			rebuildTargets();
 			rescanLoadedWorldViews();
 		}
@@ -197,17 +186,9 @@ class PohCosmeticTransmogsManager
 		{
 			return;
 		}
-		beginZoneInvalidationBatch();
-		try
-		{
-			nodePortalAccountType = modelFactory.nodePortalAccountType();
-			modelCache.clear();
-			refreshAllObjects();
-		}
-		finally
-		{
-			endZoneInvalidationBatch();
-		}
+		nodePortalAccountType = modelFactory.nodePortalAccountType();
+		modelCache.clear();
+		refreshAllObjects();
 	}
 
 	void loadMissingModels()
@@ -298,7 +279,7 @@ class PohCosmeticTransmogsManager
 			if (sceneObjects.add(object))
 			{
 				scenePlacements.put(placement, object);
-				worldViews.add(object.getWorldView());
+				worldViews.putIfAbsent(object.getWorldView(), null);
 				log.debug("Matched target object {} in world view {}",
 					object.getId(), object.getWorldView());
 				refreshObject(object);
@@ -348,7 +329,6 @@ class PohCosmeticTransmogsManager
 	void removeWorldView(WorldView worldView)
 	{
 		pendingSceneScans.remove(worldView);
-		visiblePlanes.remove(worldView);
 		worldViews.remove(worldView);
 		beginZoneInvalidationBatch();
 		try
@@ -376,6 +356,8 @@ class PohCosmeticTransmogsManager
 		pendingSceneScans.clear();
 		fullSceneScanPending = false;
 		pendingModels.clear();
+		modelRetryTick = 0;
+		nextModelRetryTick = Long.MAX_VALUE;
 		deactivateAll();
 		sceneObjects.clear();
 		scenePlacements.clear();
@@ -383,7 +365,6 @@ class PohCosmeticTransmogsManager
 		worldViews.clear();
 		retiredObjects.clear();
 		playedSpawnAnimations.clear();
-		visiblePlanes.clear();
 	}
 
 	void scheduleSceneScan()
@@ -438,7 +419,7 @@ class PohCosmeticTransmogsManager
 		{
 			return;
 		}
-		worldViews.add(worldView);
+		worldViews.putIfAbsent(worldView, null);
 		Tile[][][] tiles = worldView.getScene().getTiles();
 		if (tiles == null)
 		{
@@ -488,15 +469,16 @@ class PohCosmeticTransmogsManager
 		{
 			return;
 		}
-		for (WorldView worldView : worldViews)
+		for (Map.Entry<WorldView, Integer> entry : worldViews.entrySet())
 		{
+			WorldView worldView = entry.getKey();
 			int plane = worldView.getPlane();
-			Integer previous = visiblePlanes.get(worldView);
+			Integer previous = entry.getValue();
 			if (previous != null && previous == plane)
 			{
 				continue;
 			}
-			visiblePlanes.put(worldView, plane);
+			entry.setValue(plane);
 			beginZoneInvalidationBatch();
 			try
 			{
@@ -1044,6 +1026,10 @@ class PohCosmeticTransmogsManager
 
 	private void deactivateAll()
 	{
+		if (activeReplacements.isEmpty() && suppressedObjects.isEmpty())
+		{
+			return;
+		}
 		for (RuneLiteObject replacement : activeReplacements.values())
 		{
 			deactivateReplacement(replacement);

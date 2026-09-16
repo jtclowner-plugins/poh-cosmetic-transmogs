@@ -1031,11 +1031,56 @@ public class ManagerTest
 		}
 	}
 
+	@Test
+	public void unchangedVisibilityDoesNotResolveObjectsEvenWhenTheActivePlaneChanges()
+	{
+		Harness h = new Harness("");
+		h.objectPlane = 1;
+		h.worldPlane = 2;
+		h.manager.addObject(h.object(1));
+		h.manager.syncVisibleLevels();
+		RuneLiteObject replacement = h.only();
+		h.objectIdReads = 0;
+		for (int tick = 0; tick < 20; tick++)
+		{
+			h.manager.syncVisibleLevels();
+		}
+		h.worldPlane = 1;
+		h.manager.syncVisibleLevels();
+		assertEquals(0, h.objectIdReads);
+		assertSame(replacement, h.only());
+	}
+
+	@Test
+	public void visibilityTrackingUsesWorldViewIdentityRatherThanNumericId()
+	{
+		Harness h = new Harness("");
+		ChildWorld first = new ChildWorld(7);
+		ChildWorld second = new ChildWorld(7);
+		second.plane = 1;
+		GameObject a = h.object(1, first.world);
+		GameObject b = h.object(1, second.world);
+		h.manager.addObject(a);
+		h.manager.addObject(b);
+		h.manager.syncVisibleLevels();
+		assertTrue(h.manager.getActiveObjects().contains(a));
+		assertFalse(h.manager.getActiveObjects().contains(b));
+		second.plane = 0;
+		h.manager.syncVisibleLevels();
+		assertEquals(2, h.active.size());
+		first.plane = 1;
+		h.manager.syncVisibleLevels();
+		assertFalse(h.manager.getActiveObjects().contains(a));
+		assertTrue(h.manager.getActiveObjects().contains(b));
+		assertEquals(1, h.active.size());
+	}
+
 	private static final class ChildWorld
 	{
 		final List<GameObject> loaded = new ArrayList<>();
 		final WorldView world;
 		int scans;
+		int plane;
 
 		ChildWorld(int id)
 		{
@@ -1055,6 +1100,7 @@ public class ManagerTest
 				switch (name)
 				{
 					case "getId": return id;
+					case "getPlane": return plane;
 					case "getScene": return scene;
 					case "getSizeX":
 					case "getSizeY": return 104;
@@ -1094,6 +1140,7 @@ public class ManagerTest
 		int registrations;
 		int removals;
 		int modelLoads;
+		int objectIdReads;
 		int animationLoads;
 		int invalidations;
 		int lights;
@@ -1203,7 +1250,7 @@ public class ManagerTest
 			{
 				switch (name)
 				{
-					case "getId": return id;
+					case "getId": objectIdReads++; return id;
 					case "getWorldView": return view != null ? view : objectWorld == null ? world : objectWorld;
 					case "getSceneMinLocation": return fixedLocation == null ? new Point(sceneX, sceneY) : fixedLocation;
 					case "getSceneMaxLocation": return fixedLocation == null
