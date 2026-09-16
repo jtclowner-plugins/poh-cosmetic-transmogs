@@ -71,7 +71,6 @@ public class PohCosmeticTransmogsPlugin extends Plugin
 		}
 	};
 
-	private int sceneScanTicksRemaining;
 	private volatile boolean enabled;
 	private boolean managerStarted;
 	private boolean rendererWarningShown;
@@ -113,7 +112,6 @@ public class PohCosmeticTransmogsPlugin extends Plugin
 		renderCallbackManager.unregister(renderCallback);
 		updateShapeOverlay();
 		clientThread.invoke(manager::stop);
-		sceneScanTicksRemaining = 0;
 		managerStarted = false;
 		rendererWarningShown = false;
 	}
@@ -195,11 +193,7 @@ public class PohCosmeticTransmogsPlugin extends Plugin
 		}
 		manager.syncVisibleLevels();
 		manager.loadMissingModels();
-		if (sceneScanTicksRemaining > 0)
-		{
-			manager.reconcileLoadedWorldViews();
-			sceneScanTicksRemaining--;
-		}
+		manager.scanPendingWorldViews();
 	}
 
 	@Subscribe
@@ -207,27 +201,24 @@ public class PohCosmeticTransmogsPlugin extends Plugin
 	{
 		if (event.getGameState() == GameState.HOPPING || event.getGameState() == GameState.LOGIN_SCREEN)
 		{
-			sceneScanTicksRemaining = 0;
 			manager.clearSceneState();
 		}
 		else if (event.getGameState() == GameState.LOADING)
 		{
 			manager.clearSceneState();
-			sceneScanTicksRemaining = 3;
+			manager.scheduleSceneScan();
 		}
 		else if (event.getGameState() == GameState.LOGGED_IN)
 		{
 			manager.refreshColours();
-			manager.reconcileLoadedWorldViews();
-			sceneScanTicksRemaining = Math.max(sceneScanTicksRemaining, 2);
+			manager.scheduleSceneScan();
 		}
 	}
 
 	@Subscribe
 	public void onWorldViewLoaded(WorldViewLoaded event)
 	{
-		manager.scanWorldView(event.getWorldView());
-		sceneScanTicksRemaining = Math.max(sceneScanTicksRemaining, 2);
+		manager.worldViewLoaded(event.getWorldView());
 	}
 
 	@Subscribe

@@ -47,7 +47,8 @@ public class ManagerTest
 		int animationLoads = h.animationLoads;
 		h.manager.syncVisibleLevels();
 		h.manager.setHidden(false);
-		h.manager.reconcileLoadedWorldViews();
+		h.manager.scheduleSceneScan();
+		h.manager.scanPendingWorldViews();
 		assertSame(replacement, h.only());
 		assertEquals(3, replacement.getAnimationController().getFrame());
 		assertEquals(invalidations, h.invalidations);
@@ -552,11 +553,207 @@ public class ManagerTest
 		assertTrue(h.operations.contains("scale:-128:128:128"));
 	}
 
+	@Test
+	public void startupScansLoadedViewsOnceWithOrWithoutSelections()
+	{
+		for (Map<String, String> selections : List.of(Collections.<String, String>emptyMap(), Map.of("box", "gem")))
+		{
+			Harness h = new Harness("");
+			h.manager.stop();
+			h.loaded.add(h.object(1));
+			ChildWorld child = new ChildWorld(7);
+			h.children.add(child.world);
+			child.loaded.add(h.object(1, child.world));
+			int scans = h.scans;
+			h.manager.start(selections, false);
+			assertEquals(scans + 1, h.scans);
+			assertEquals(1, child.scans);
+			assertEquals(2, h.active.size());
+		}
+	}
+
+	@Test
+	public void loadingAndLoginCoalesceIntoOneRecoveryAfterSceneEstablishment()
+	{
+		Harness h = new Harness("");
+		h.gameState = GameState.LOADING;
+		h.manager.clearSceneState();
+		h.manager.scheduleSceneScan();
+		int scans = h.scans;
+		h.manager.scanPendingWorldViews();
+		assertEquals(scans, h.scans);
+		GameObject missed = h.object(1);
+		h.loaded.add(missed);
+		h.gameState = GameState.LOGGED_IN;
+		h.manager.scheduleSceneScan();
+		h.manager.scanPendingWorldViews();
+		assertEquals(scans + 1, h.scans);
+		assertFalse(h.manager.shouldDrawObject(missed));
+		RuneLiteObject replacement = h.only();
+		for (int tick = 0; tick < 10; tick++)
+		{
+			h.manager.scanPendingWorldViews();
+		}
+		assertEquals(scans + 1, h.scans);
+		assertSame(replacement, h.only());
+	}
+
+	@Test
+	public void childLoadRecoversOnlyThatViewAndLaterEventsNeedNoScans()
+	{
+		Harness h = new Harness("");
+		ChildWorld child = new ChildWorld(7);
+		h.children.add(child.world);
+		int scans = h.scans;
+		h.manager.worldViewLoaded(child.world);
+		assertEquals(1, child.scans);
+		GameObject missed = h.object(1, child.world);
+		child.loaded.add(missed);
+		h.manager.scanPendingWorldViews();
+		assertEquals(2, child.scans);
+		assertEquals(scans, h.scans);
+		assertFalse(h.manager.shouldDrawObject(missed));
+		child.loaded.remove(missed);
+		h.manager.removeObject(missed);
+		GameObject spawned = h.object(2, child.world);
+		child.loaded.add(spawned);
+		h.manager.addObject(spawned);
+		h.manager.scanPendingWorldViews();
+		assertEquals(2, child.scans);
+		assertEquals(scans, h.scans);
+		assertTrue(h.manager.shouldDrawObject(missed));
+		assertFalse(h.manager.shouldDrawObject(spawned));
+		assertEquals(1, h.active.size());
+	}
+
+	@Test
+	public void globalRecoveryConsumesChildRecoveryWithoutScanningItTwice()
+	{
+		Harness h = new Harness("");
+		ChildWorld child = new ChildWorld(7);
+		h.children.add(child.world);
+		h.manager.worldViewLoaded(child.world);
+		h.manager.scheduleSceneScan();
+		int scans = h.scans;
+		h.manager.scanPendingWorldViews();
+		assertEquals(scans + 1, h.scans);
+		assertEquals(2, child.scans);
+		h.manager.scanPendingWorldViews();
+		assertEquals(2, child.scans);
+	}
+
+	@Test
+	public void recoveryIncludesLoadedChildNotYetInTheTopLevelIndex()
+	{
+		Harness h = new Harness("");
+		ChildWorld child = new ChildWorld(7);
+		h.manager.worldViewLoaded(child.world);
+		GameObject missed = h.object(1, child.world);
+		child.loaded.add(missed);
+		h.manager.scheduleSceneScan();
+		h.manager.scanPendingWorldViews();
+		assertEquals(2, child.scans);
+		assertFalse(h.manager.shouldDrawObject(missed));
+	}
+
+	@Test
+	public void unloadingAndSceneResetCancelPendingRecovery()
+	{
+		Harness h = new Harness("");
+		ChildWorld old = new ChildWorld(7);
+		h.manager.worldViewLoaded(old.world);
+		h.manager.removeWorldView(old.world);
+		old.loaded.add(h.object(1, old.world));
+		ChildWorld current = new ChildWorld(7);
+		current.loaded.add(h.object(1, current.world));
+		h.manager.worldViewLoaded(current.world);
+		h.manager.scanPendingWorldViews();
+		assertEquals(1, old.scans);
+		assertEquals(2, current.scans);
+		assertEquals(1, h.active.size());
+		h.manager.worldViewLoaded(current.world);
+		h.manager.scheduleSceneScan();
+		h.manager.clearSceneState();
+		int scans = h.scans;
+		h.manager.scanPendingWorldViews();
+		assertEquals(scans, h.scans);
+		assertEquals(3, current.scans);
+		assertTrue(h.active.isEmpty());
+	}
+
+	@Test
+	public void stoppingCancelsScansAndPausedLoadEventsDoNotScan()
+	{
+		Harness h = new Harness("");
+		h.manager.worldViewLoaded(h.world);
+		h.manager.scheduleSceneScan();
+		h.manager.stop();
+		int scans = h.scans;
+		h.manager.worldViewLoaded(h.world);
+		h.manager.scheduleSceneScan();
+		h.manager.scanPendingWorldViews();
+		assertEquals(scans, h.scans);
+		h.loaded.add(h.object(1));
+		h.manager.start(Collections.emptyMap(), false);
+		h.manager.scanPendingWorldViews();
+		assertEquals(scans + 1, h.scans);
+		assertEquals(1, h.active.size());
+	}
+
+	@Test
+	public void recoveryDoesNotImmediatelyRetryTheMissingModelItJustDiscovered()
+	{
+		Harness h = new Harness("");
+		h.modelsAvailable = false;
+		h.loaded.add(h.object(1));
+		h.manager.scheduleSceneScan();
+		h.manager.scanPendingWorldViews();
+		assertEquals(1, h.modelLoads);
+		assertTrue(h.active.isEmpty());
+		h.modelsAvailable = true;
+		h.manager.loadMissingModels();
+		assertEquals(1, h.active.size());
+	}
+
+	private static final class ChildWorld
+	{
+		final List<GameObject> loaded = new ArrayList<>();
+		final WorldView world;
+		int scans;
+
+		ChildWorld(int id)
+		{
+			Scene scene = ApiDouble.of(Scene.class, (name, args) ->
+			{
+				if (name.equals("getTiles"))
+				{
+					scans++;
+					Tile tile = ApiDouble.of(Tile.class, (n, a) -> n.equals("getGameObjects")
+						? loaded.toArray(new GameObject[0]) : DEFAULT);
+					return new Tile[][][] {{{tile}}};
+				}
+				return DEFAULT;
+			});
+			world = ApiDouble.of(WorldView.class, (name, args) ->
+			{
+				switch (name)
+				{
+					case "getId": return id;
+					case "getScene": return scene;
+					case "getSizeX":
+					case "getSizeY": return 104;
+					default: return DEFAULT;
+				}
+			});
+		}
+	}
+
 	private static final class Harness
 	{
 		final Set<RuneLiteObject> active = Collections.newSetFromMap(new IdentityHashMap<>());
 		final List<String> operations = new ArrayList<>();
 		final List<GameObject> loaded = new ArrayList<>();
+		final List<WorldView> children = new ArrayList<>();
 		final Client client;
 		final WorldView world;
 		final PohCosmeticTransmogsManager manager;
@@ -580,6 +777,7 @@ public class ManagerTest
 		int animationLoads;
 		int invalidations;
 		int lights;
+		int scans;
 		GameState gameState = GameState.LOGGED_IN;
 
 		Harness(String fields)
@@ -593,6 +791,7 @@ public class ManagerTest
 			{
 				if (name.equals("getTiles"))
 				{
+					scans++;
 					Tile tile = ApiDouble.of(Tile.class, (n, a) -> n.equals("getGameObjects")
 						? loaded.toArray(new GameObject[0]) : DEFAULT);
 					return new Tile[][][] {{{tile}}};
@@ -607,7 +806,7 @@ public class ManagerTest
 					case "getPlane": return worldPlane;
 					case "getScene": return scene;
 					case "worldViews": return ApiDouble.of(IndexedObjectSet.class,
-						(n, a) -> n.equals("iterator") ? Collections.emptyIterator() : DEFAULT);
+						(n, a) -> n.equals("iterator") ? children.iterator() : DEFAULT);
 					default: return DEFAULT;
 				}
 			});
@@ -659,12 +858,17 @@ public class ManagerTest
 
 		GameObject object(int id)
 		{
+			return object(id, null);
+		}
+
+		GameObject object(int id, WorldView view)
+		{
 			return ApiDouble.of(GameObject.class, (name, args) ->
 			{
 				switch (name)
 				{
 					case "getId": return id;
-					case "getWorldView": return objectWorld == null ? world : objectWorld;
+					case "getWorldView": return view != null ? view : objectWorld == null ? world : objectWorld;
 					case "getSceneMinLocation": return new Point(sceneX, sceneY);
 					case "getSceneMaxLocation": return new Point(sceneX - 1 + sizeX, sceneY - 1 + sizeY);
 					case "getPlane": return objectPlane;

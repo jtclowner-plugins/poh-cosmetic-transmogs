@@ -58,6 +58,7 @@ class PohCosmeticTransmogsManager
 	private final Map<PlacementKey, TileObject> scenePlacements = new HashMap<>();
 	private final Map<PlacementKey, Integer> recentDespawnedStates = new HashMap<>();
 	private final Set<WorldView> worldViews = identitySet();
+	private final Set<WorldView> pendingSceneScans = identitySet();
 	private final Set<ZoneKey> pendingZoneInvalidations = new HashSet<>();
 	private final Map<Integer, Integer> visiblePlanes = new HashMap<>();
 	private final Set<String> playedSpawnAnimations = new HashSet<>();
@@ -69,6 +70,7 @@ class PohCosmeticTransmogsManager
 	private Catalogue catalogue = Catalogue.current;
 	private int zoneInvalidationBatchDepth;
 	private boolean snapshotsDirty;
+	private boolean fullSceneScanPending;
 
 	@Inject
 	PohCosmeticTransmogsManager(Client client, PohCosmeticTransmogsConfig config)
@@ -86,8 +88,14 @@ class PohCosmeticTransmogsManager
 		running = true;
 		catalogue = Catalogue.current;
 		rebuildTargets();
-		setSelections(initialSelections);
-		rescanLoadedWorldViews();
+		if (selections.equals(initialSelections))
+		{
+			rescanLoadedWorldViews();
+		}
+		else
+		{
+			setSelections(initialSelections);
+		}
 		log.debug("PoH furniture scan found {} targets and activated {} replacements",
 			sceneObjects.size(), activeReplacements.size());
 	}
@@ -102,6 +110,8 @@ class PohCosmeticTransmogsManager
 		scenePlacements.clear();
 		recentDespawnedStates.clear();
 		worldViews.clear();
+		pendingSceneScans.clear();
+		fullSceneScanPending = false;
 		retiredObjects.clear();
 		modelCache.clear();
 		targetsById.clear();
@@ -280,6 +290,7 @@ class PohCosmeticTransmogsManager
 
 	void removeWorldView(WorldView worldView)
 	{
+		pendingSceneScans.remove(worldView);
 		visiblePlanes.remove(worldView.getId());
 		worldViews.remove(worldView);
 		beginZoneInvalidationBatch();
@@ -305,6 +316,8 @@ class PohCosmeticTransmogsManager
 
 	void clearSceneState()
 	{
+		pendingSceneScans.clear();
+		fullSceneScanPending = false;
 		pendingModels.clear();
 		deactivateAll();
 		sceneObjects.clear();
@@ -316,18 +329,41 @@ class PohCosmeticTransmogsManager
 		visiblePlanes.clear();
 	}
 
-	void reconcileLoadedWorldViews()
+	void scheduleSceneScan()
 	{
+		fullSceneScanPending = running;
+	}
+
+	void worldViewLoaded(WorldView worldView)
+	{
+		if (!running)
+		{
+			return;
+		}
+		scanWorldView(worldView);
+		pendingSceneScans.add(worldView);
+	}
+
+	void scanPendingWorldViews()
+	{
+		if (!running || !fullSceneScanPending && pendingSceneScans.isEmpty()
+			|| client.getGameState() != GameState.LOGGED_IN)
+		{
+			return;
+		}
+		// Hooks replays deferred object events before GameTick. One recovery pass
+		// catches pre-existing objects; later spawns/despawns maintain the scene.
 		beginZoneInvalidationBatch();
 		try
 		{
-			rescanLoadedWorldViews();
-			for (TileObject object : sceneObjects)
+			if (fullSceneScanPending)
 			{
-				if (!activeReplacements.containsKey(object))
-				{
-					refreshObject(object);
-				}
+				fullSceneScanPending = false;
+				rescanLoadedWorldViews();
+			}
+			for (WorldView worldView : new ArrayList<>(pendingSceneScans))
+			{
+				scanWorldView(worldView);
 			}
 		}
 		finally
@@ -336,9 +372,10 @@ class PohCosmeticTransmogsManager
 		}
 	}
 
-	void scanWorldView(@Nullable WorldView worldView)
+	private void scanWorldView(@Nullable WorldView worldView)
 	{
-		if (worldView == null || worldView.getScene() == null)
+		pendingSceneScans.remove(worldView);
+		if (!running || worldView == null || worldView.getScene() == null)
 		{
 			return;
 		}
