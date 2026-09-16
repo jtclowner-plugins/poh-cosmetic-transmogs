@@ -203,7 +203,6 @@ final class Catalogue
 		transient Definition closed;
 		transient Definition open;
 		String[] bindTargets = {};
-		Alignment alignment = Alignment.NONE;
 		boolean bobbing;
 		int transitionModelId = -1;
 		int transitionAnimationId = -1;
@@ -242,6 +241,7 @@ final class Catalogue
 	enum Alignment
 	{
 		NONE(0, 0),
+		MIDDLE_SW(-1, -1),
 		SOUTH_WEST(-1, -1),
 		SOUTH_EAST(1, -1),
 		NORTH_WEST(-1, 1),
@@ -262,6 +262,13 @@ final class Catalogue
 	static class Calibration
 	{
 		int rotation;
+		boolean inheritRotation = true;
+		Alignment alignment = Alignment.NONE;
+		// Logical footprint after fitting, independent of cosmetic model scale.
+		@EqualsAndHashCode.Exclude
+		transient int fittedSizeX;
+		@EqualsAndHashCode.Exclude
+		transient int fittedSizeY;
 		int scaleX = NATIVE_MODEL_SCALE;
 		int scaleHeight = NATIVE_MODEL_SCALE;
 		int scaleY = NATIVE_MODEL_SCALE;
@@ -377,13 +384,23 @@ final class Catalogue
 
 		static Calibration calibration(Recipe recipe, TargetSpec target, int targetSizeX, int targetSizeY)
 		{
+			return calibration(recipe, target, targetSizeX, targetSizeY, 0);
+		}
+
+		static Calibration calibration(Recipe recipe, TargetSpec target, int targetSizeX, int targetSizeY,
+			int baseOrientation)
+		{
 			Calibration selected = recipe.placements.getOrDefault(target.key, recipe);
 			TargetSpec.FitMode fit = selected.fitMode == null ? target.defaultFitMode : selected.fitMode;
 			if (fit == TargetSpec.FitMode.NONE)
 			{
 				return selected;
 			}
-			if (isQuarterTurn(selected.rotation))
+			// Existing inherited fitting stays unchanged. Fixed-facing replacements
+			// fit against target dimensions expressed in their own orientation.
+			boolean swapAxes = selected.inheritRotation ? isQuarterTurn(selected.rotation)
+				: logicalQuarterTurn(selected.rotation) != logicalQuarterTurn(baseOrientation);
+			if (swapAxes)
 			{
 				int swap = targetSizeX;
 				targetSizeX = targetSizeY;
@@ -394,6 +411,10 @@ final class Catalogue
 				footprintScale(selected.scaleY, targetSizeY, recipe.sizeY),
 				selected.offsetX, selected.offsetHeight, selected.offsetY);
 			result.flipX = selected.flipX;
+			result.inheritRotation = selected.inheritRotation;
+			result.alignment = selected.alignment;
+			result.fittedSizeX = targetSizeX;
+			result.fittedSizeY = targetSizeY;
 			result.worldOffsetX = selected.worldOffsetX;
 			result.worldOffsetY = selected.worldOffsetY;
 			return result;
@@ -561,6 +582,12 @@ final class Catalogue
 		static boolean isQuarterTurn(int orientation)
 		{
 			return (orientation & 1023) == 512;
+		}
+
+		static boolean logicalQuarterTurn(int orientation)
+		{
+			// Nearest cardinal orientation, with exact half-way angles rounded up.
+			return ((((orientation + 256) & 2047) / 512) & 1) != 0;
 		}
 
 		static int footprintScale(int nativeScale, int targetTiles, int sourceTiles)

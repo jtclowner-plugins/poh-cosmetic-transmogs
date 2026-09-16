@@ -261,7 +261,7 @@ public class ManagerTest
 	}
 
 	@Test
-	public void alignmentUsesActualFootprintParityPerAxis()
+	public void alignmentMatchesCornersOrSnapsMiddlePerAxis()
 	{
 		for (int targetX = 1; targetX <= 4; targetX++)
 		{
@@ -276,9 +276,16 @@ public class ManagerTest
 						h.sizeX = targetX;
 						h.sizeY = targetY;
 						h.manager.addObject(h.object(1));
-						assertEquals((10 + targetX) * 64 + ((targetX - replacementSize) & 1) * alignment.x * 64,
+						int deltaX = targetX - replacementSize;
+						int deltaY = targetY - replacementSize;
+						if (alignment == Catalogue.Alignment.MIDDLE_SW)
+						{
+							deltaX &= 1;
+							deltaY &= 1;
+						}
+						assertEquals((10 + targetX) * 64 + deltaX * alignment.x * 64,
 							h.only().getLocation().getX());
-						assertEquals((10 + targetY) * 64 + ((targetY - replacementSize) & 1) * alignment.y * 64,
+						assertEquals((10 + targetY) * 64 + deltaY * alignment.y * 64,
 							h.only().getLocation().getY());
 						h.manager.stop();
 					}
@@ -293,17 +300,120 @@ public class ManagerTest
 		Harness h = new Harness("\"sizeX\":2,\"sizeY\":3,\"rotation\":512,"
 			+ "\"alignment\":\"SOUTH_WEST\",\"offsetX\":128,\"offsetY\":256,");
 		h.manager.addObject(h.object(1));
-		assertEquals(704 + 128, h.only().getLocation().getX());
-		assertEquals(704 - 64 + 256, h.only().getLocation().getY());
+		assertEquals(704 + 128 + 128, h.only().getLocation().getX());
+		assertEquals(704 + 64 + 256, h.only().getLocation().getY());
 		h.manager.stop();
 
 		h = new Harness("\"sizeX\":2,\"sizeY\":3,\"alignment\":\"SOUTH_WEST\","
 			+ "\"offsetX\":128,\"offsetY\":256,");
 		h.orientation = 512;
 		h.manager.addObject(h.object(1));
-		assertEquals(704 + 256, h.only().getLocation().getX());
-		assertEquals(704 - 64 - 128, h.only().getLocation().getY());
+		assertEquals(704 + 128 + 256, h.only().getLocation().getX());
+		assertEquals(704 + 64 - 128, h.only().getLocation().getY());
 		h.manager.stop();
+	}
+
+	@Test
+	public void fixedFacingKeepsTargetOffsetsAndWorldOffsetsIndependent()
+	{
+		for (int orientation : new int[] {0, 512, 1024, 1536})
+		{
+			Harness h = new Harness("\"sizeX\":4,\"sizeY\":2,\"inheritRotation\":false,\"rotation\":512,"
+				+ "\"alignment\":\"SOUTH_WEST\",\"offsetX\":128,\"worldOffsetX\":-128,\"worldOffsetY\":-128,");
+			h.orientation = orientation;
+			h.manager.addObject(h.object(1));
+			// Fixed 2x4 world footprint: aligned centre is (768, 896).
+			int[] relativeX = {128, 0, -128, 0};
+			int[] relativeY = {0, -128, 0, 128};
+			assertEquals(512, h.only().getOrientation());
+			assertEquals(768 + relativeX[orientation / 512] - 128, h.only().getLocation().getX());
+			assertEquals(896 + relativeY[orientation / 512] - 128, h.only().getLocation().getY());
+			h.manager.stop();
+		}
+	}
+
+	@Test
+	public void worldOffsetAlwaysMovesTheAlignedReplacementEast()
+	{
+		for (int orientation : new int[] {0, 512, 1024, 1536})
+		{
+			Harness h = new Harness("\"sizeX\":4,\"sizeY\":2,\"alignment\":\"SOUTH_WEST\",\"worldOffsetX\":512,");
+			h.orientation = orientation;
+			h.manager.addObject(h.object(1));
+			int width = orientation % 1024 == 0 ? 4 : 2;
+			int depth = orientation % 1024 == 0 ? 2 : 4;
+			// The southwest tile stays at (704,704), plus four tiles east.
+			assertEquals(704 + 512, h.only().getLocation().getX() - (width - 1) * 64);
+			assertEquals(704, h.only().getLocation().getY() - (depth - 1) * 64);
+			h.manager.stop();
+		}
+	}
+
+	@Test
+	public void fixedFacingFootprintFitUsesWorldDimensionsOnRotatedTargets()
+	{
+		for (boolean explicitSize : new boolean[] {false, true})
+		{
+			for (int rotation : new int[] {0, 512})
+			{
+				Harness h = new Harness("\"sizeX\":4,\"sizeY\":2,\"inheritRotation\":false,\"rotation\":" + rotation
+					+ ",\"fitMode\":\"FOOTPRINT\",\"alignment\":\"SOUTH_WEST\",");
+				h.orientation = 512;
+				h.sizeX = 3;
+				h.sizeY = 2;
+				if (explicitSize)
+				{
+					Catalogue.current.targets.get("box").sizeX = 2;
+					Catalogue.current.targets.get("box").sizeY = 3;
+				}
+				h.manager.addObject(h.object(1));
+				assertEquals(rotation, h.only().getOrientation());
+				assertEquals(832, h.only().getLocation().getX());
+				assertEquals(768, h.only().getLocation().getY());
+				assertTrue(h.operations.contains(rotation == 0 ? "scale:96:128:128" : "scale:64:128:192"));
+				h.manager.stop();
+			}
+		}
+	}
+
+	@Test
+	public void placementOverridesCanResetAlignmentAndRotationInheritance()
+	{
+		Harness h = new Harness("\"sizeX\":4,\"sizeY\":2,\"alignment\":\"SOUTH_WEST\",\"inheritRotation\":false,"
+			+ "\"worldOffsetX\":128,\"placements\":{\"box\":{\"alignment\":\"NONE\",\"inheritRotation\":true,\"rotation\":512}},");
+		h.orientation = 512;
+		h.manager.addObject(h.object(1));
+		assertEquals(1024, h.only().getOrientation());
+		assertEquals(832, h.only().getLocation().getX());
+		assertEquals(704, h.only().getLocation().getY());
+		h.manager.stop();
+	}
+
+	@Test
+	public void fixedFacingIgnoresTargetOrientationCorrectionButOffsetsKeepIt()
+	{
+		Harness h = new Harness("\"inheritRotation\":false,\"rotation\":1024,\"offsetX\":128,");
+		Catalogue.current.targets.get("box").orientationOffset = 512;
+		h.manager.addObject(h.object(1));
+		assertEquals(1024, h.only().getOrientation());
+		assertEquals(704, h.only().getLocation().getX());
+		assertEquals(576, h.only().getLocation().getY());
+		h.manager.stop();
+	}
+
+	@Test
+	public void diagonalRectangleUsesNearestLogicalQuarterTurn()
+	{
+		for (int rotation : new int[] {-1, 255, 256, 767, 768, 2048})
+		{
+			Harness h = new Harness("\"sizeX\":4,\"sizeY\":2,\"alignment\":\"SOUTH_WEST\",\"rotation\":" + rotation + ",");
+			h.manager.addObject(h.object(1));
+			boolean swapped = rotation == 256 || rotation == 767;
+			assertEquals(rotation & 2047, h.only().getOrientation());
+			assertEquals(swapped ? 768 : 896, h.only().getLocation().getX());
+			assertEquals(swapped ? 896 : 768, h.only().getLocation().getY());
+			h.manager.stop();
+		}
 	}
 
 	@Test
@@ -322,8 +432,8 @@ public class ManagerTest
 		Harness h = new Harness("\"sizeX\":2,\"sizeY\":2,\"rotation\":256,"
 			+ "\"scaleX\":900,\"alignment\":\"SOUTH_WEST\",");
 		h.manager.addObject(h.object(1));
-		assertEquals(640, h.only().getLocation().getX());
-		assertEquals(640, h.only().getLocation().getY());
+		assertEquals(768, h.only().getLocation().getX());
+		assertEquals(768, h.only().getLocation().getY());
 		h.manager.stop();
 	}
 
@@ -483,8 +593,8 @@ public class ManagerTest
 		assertEquals(2, h.active.size());
 		for (RuneLiteObject part : h.active)
 		{
-			assertEquals(640, part.getLocation().getX());
-			assertEquals(640, part.getLocation().getY());
+			assertEquals(768, part.getLocation().getX());
+			assertEquals(768, part.getLocation().getY());
 		}
 		effect.tick(8);
 		assertEquals(1, h.active.size());

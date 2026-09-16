@@ -553,7 +553,7 @@ class PohCosmeticTransmogsManager
 	{
 		Catalogue.Definition state = binding.appearance.state(open);
 		return loadModel(binding, state, binding.appearance.stateKey(state),
-			binding.calibration(object.sizeX(), object.sizeY()));
+			binding.calibration(object));
 	}
 
 	@Nullable
@@ -648,25 +648,30 @@ class PohCosmeticTransmogsManager
 		}
 
 		String appearanceKey = resolved.appearance.key;
-		int baseOrientation = (gameObject.getOrientation()
-			+ targetsById.get(gameObject.getId()).target.orientationOffset) & 2047;
-		int correction = calibration.getRotation();
-		int defaultOrientation = (baseOrientation + correction) & 2047;
+		int baseOrientation = targetsById.get(gameObject.getId()).baseOrientation(gameObject);
+		int defaultOrientation = ((calibration.isInheritRotation() ? baseOrientation : 0)
+			+ calibration.getRotation()) & 2047;
 		LocalPoint anchor = occupiedTileCentre(gameObject);
-		Catalogue.Alignment alignment = resolved.appearance.alignment;
+		Catalogue.Alignment alignment = calibration.getAlignment();
 		if (alignment != null && alignment != Catalogue.Alignment.NONE)
 		{
-			int width = resolved.appearance.getSizeX();
-			int depth = resolved.appearance.getSizeY();
-			if (defaultOrientation == 512 || defaultOrientation == 1536)
+			int width = calibration.fittedSizeX > 0 ? calibration.fittedSizeX : resolved.appearance.getSizeX();
+			int depth = calibration.fittedSizeY > 0 ? calibration.fittedSizeY : resolved.appearance.getSizeY();
+			// Logical tile footprint uses the nearest quarter-turn; ties round up.
+			// Do not use rotated mesh bounds: cosmetic scale/animation must not move the anchor.
+			if (Catalogue.ModelFactory.logicalQuarterTurn(defaultOrientation))
 			{
 				int swap = width;
 				width = depth;
 				depth = swap;
 			}
-			// Alignment is world-relative; manual offsets retain the target's orientation.
-			int x = (gameObject.getSceneMaxLocation().getX() - gameObject.getSceneMinLocation().getX() + 1 - width) & 1;
-			int y = (gameObject.getSceneMaxLocation().getY() - gameObject.getSceneMinLocation().getY() + 1 - depth) & 1;
+			int x = gameObject.getSceneMaxLocation().getX() - gameObject.getSceneMinLocation().getX() + 1 - width;
+			int y = gameObject.getSceneMaxLocation().getY() - gameObject.getSceneMinLocation().getY() + 1 - depth;
+			if (alignment == Catalogue.Alignment.MIDDLE_SW)
+			{
+				x &= 1;
+				y &= 1;
+			}
 			anchor = new LocalPoint(anchor.getX() + x * alignment.x * 64,
 				anchor.getY() + y * alignment.y * 64, anchor.getWorldView());
 		}
@@ -789,7 +794,7 @@ class PohCosmeticTransmogsManager
 			return null;
 		}
 		Catalogue.Definition definition = target.state(object.getId());
-		Catalogue.Calibration calibration = target.calibration(object.sizeX(), object.sizeY());
+		Catalogue.Calibration calibration = target.calibration(object);
 		Model model = loadModel(target, definition, target.appearance.stateKey(definition), calibration);
 		if (model == null)
 		{
@@ -843,7 +848,7 @@ class PohCosmeticTransmogsManager
 		Model open = loadState(binding, (GameObject) object, true);
 		Model closed = loadState(binding, (GameObject) object, false);
 		Catalogue.Calibration calibration =
-			binding.calibration(((GameObject) object).sizeX(), ((GameObject) object).sizeY());
+			binding.calibration((GameObject) object);
 		Model transition = loadTransitionModel(
 			binding, source, appearance.transitionModelId, appearance.transitionAnimationId, calibration);
 		if (open == null || closed == null || transition == null)
@@ -898,7 +903,7 @@ class PohCosmeticTransmogsManager
 			return;
 		}
 		Catalogue.Calibration calibration =
-			binding.calibration(((GameObject) object).sizeX(), ((GameObject) object).sizeY());
+			binding.calibration((GameObject) object);
 		PostTransformAnimationController controller =
 			new PostTransformAnimationController(client, transition, calibration, true);
 		controller.setReverseFinished(() ->
@@ -925,7 +930,7 @@ class PohCosmeticTransmogsManager
 		Animation idle = source.getAnimationId() < 0
 			? null : client.loadAnimation(source.getAnimationId());
 		Catalogue.Calibration calibration =
-			binding.calibration(((GameObject) object).sizeX(), ((GameObject) object).sizeY());
+			binding.calibration((GameObject) object);
 		replacement.setAnimationController(new ScaleTransitionController(
 			client, idle, calibration, opening, SCALE_TRANSITION_DURATION));
 	}
