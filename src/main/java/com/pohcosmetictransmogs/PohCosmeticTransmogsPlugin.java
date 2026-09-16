@@ -84,7 +84,7 @@ public class PohCosmeticTransmogsPlugin extends Plugin
 	{
 		if (Catalogue.current.appearances.isEmpty())
 		{
-			Catalogue.current = Catalogue.loadCatalogue(gson, null, Catalogue.openCatalogueReader());
+			Catalogue.current = Catalogue.loadCatalogue(gson, Catalogue.openCatalogueReader());
 		}
 		return manager.getConfig(PohCosmeticTransmogsConfig.class);
 	}
@@ -310,7 +310,7 @@ public class PohCosmeticTransmogsPlugin extends Plugin
 
 	private void reloadCatalogue()
 	{
-		Catalogue.current = Catalogue.loadCatalogue(gson, client, Catalogue.openCatalogueReader(),
+		Catalogue.current = Catalogue.loadCatalogue(gson, Catalogue.openCatalogueReader(),
 			new StringReader(java.util.Objects.toString(configManager.getConfiguration(
 				PohCosmeticTransmogsConfig.GROUP, "pohtransmogs"), "{}")));
 		manager.setCatalogue(Catalogue.current);

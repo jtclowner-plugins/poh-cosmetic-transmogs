@@ -487,7 +487,7 @@ public class ManagerTest
 	public void equalModelIdsInDifferentRecipesHaveIndependentCacheEntries()
 	{
 		Harness h = new Harness("");
-		Catalogue.current = Catalogue.loadCatalogue(RuneLiteAPI.GSON, null,
+		Catalogue.current = Catalogue.loadCatalogue(RuneLiteAPI.GSON,
 			new StringReader("{\"targets\":{\"a\":{\"objectIds\":[1]},\"b\":{\"objectIds\":[3]}},"
 				+ "\"appearances\":{\"red\":{\"modelIds\":[10],\"recolours\":{\"127\":730},\"bindTargets\":[\"a\"]},"
 				+ "\"blue\":{\"modelIds\":[10],\"recolours\":{\"127\":44762},\"bindTargets\":[\"b\"]}}}"));
@@ -601,7 +601,7 @@ public class ManagerTest
 		h.manager.setCatalogue(Catalogue.current);
 		assertEquals(1, h.active.size());
 		assertNotSame(previous, h.only().getModel());
-		h.manager.setCatalogue(Catalogue.loadCatalogue(RuneLiteAPI.GSON, null, new StringReader("{}")));
+		h.manager.setCatalogue(Catalogue.loadCatalogue(RuneLiteAPI.GSON, new StringReader("{}")));
 		assertTrue(h.active.isEmpty());
 		assertTrue(h.manager.shouldDrawObject(object));
 	}
@@ -1288,7 +1288,7 @@ public class ManagerTest
 					default: return DEFAULT;
 				}
 			});
-			Catalogue.current = Catalogue.loadCatalogue(RuneLiteAPI.GSON, null, new StringReader(
+			Catalogue.current = Catalogue.loadCatalogue(RuneLiteAPI.GSON, new StringReader(
 				"{\"targets\":{\"box\":{\"objectIds\":[1,2],\"openObjectIds\":[2],\"scaleTransition\":true}},"
 				+ "\"appearances\":{\"gem\":{" + fields + "\"modelIds\":[10],\"bindTargets\":[\"box\"]}}}"));
 			manager = new PohCosmeticTransmogsManager(client, config);

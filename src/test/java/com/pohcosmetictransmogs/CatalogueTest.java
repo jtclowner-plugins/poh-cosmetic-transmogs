@@ -3,8 +3,6 @@ package com.pohcosmetictransmogs;
 import java.io.StringReader;
 import java.util.Collections;
 import java.util.Map;
-import net.runelite.api.Client;
-import net.runelite.api.ObjectComposition;
 import net.runelite.http.api.RuneLiteAPI;
 import org.junit.Test;
 
@@ -12,19 +10,6 @@ import static org.junit.Assert.*;
 
 public class CatalogueTest
 {
-	@Test
-	public void explicitGeometryDoesNotNeedCacheMetadata()
-	{
-		Client client = ApiDouble.of(Client.class, (name, args) ->
-		{
-			throw new AssertionError("Unexpected cache lookup: " + name);
-		});
-		Catalogue catalogue = Catalogue.loadCatalogue(RuneLiteAPI.GSON, client,
-			new StringReader("{\"appearances\":{\"gem\":{\"sourceObjectId\":42,\"modelIds\":[10],"
-				+ "\"sizeX\":2,\"sizeY\":3,\"scale\":180,\"open\":{\"sourceObjectId\":43,\"modelIds\":[11]}}}}"));
-		assertEquals(180, catalogue.appearances.get("gem").open.scaleHeight);
-	}
-
 	@Test
 	public void placementsInheritTransformsAndExpandGroupedTargets()
 	{
@@ -86,28 +71,22 @@ public class CatalogueTest
 	}
 
 	@Test
-	public void everyReaderUsesTheSameCacheAwareNormalization()
+	public void footprintAndMeshScaleHaveIndependentDefaults()
 	{
-		ObjectComposition composition = ApiDouble.of(ObjectComposition.class, (name, args) ->
-			name.equals("getSizeX") ? 3 : name.equals("getSizeY") ? 2 : ApiDouble.DEFAULT);
-		int[] lookups = {0};
-		Client client = ApiDouble.of(Client.class, (name, args) ->
-		{
-			if (name.equals("getObjectDefinition")) { lookups[0]++; return composition; }
-			return ApiDouble.DEFAULT;
-		});
-		Catalogue catalogue = Catalogue.loadCatalogue(RuneLiteAPI.GSON, client,
-			new StringReader("{\"appearances\":{\"a\":{\"sourceObjectId\":42,\"sizeX\":6,\"sizeY\":8}}}"),
-			new StringReader("{\"appearances\":{\"b\":{\"sourceObjectId\":42,\"sizeX\":6,\"sizeY\":8}}}"));
-		assertEquals(2, lookups[0]);
-		for (Catalogue.Recipe recipe : catalogue.appearances.values())
-		{
-			assertEquals(6, recipe.sizeX);
-			assertEquals(8, recipe.sizeY);
-			assertEquals(256, recipe.scaleX);
-			assertEquals(512, recipe.scaleY);
-			assertEquals(256, recipe.scaleHeight);
-		}
+		Catalogue.Definition definition = new Catalogue.Definition();
+		definition.sizeX = 6;
+		definition.sizeY = 8;
+		definition.scaleX = 200;
+		definition.normalize();
+		assertEquals(6, definition.sizeX);
+		assertEquals(8, definition.sizeY);
+		assertEquals(200, definition.scaleX);
+		assertEquals(128, definition.scaleY);
+		assertEquals(128, definition.scaleHeight);
+		Catalogue.Definition defaults = new Catalogue.Definition();
+		defaults.normalize();
+		assertEquals(1, defaults.sizeX);
+		assertEquals(1, defaults.sizeY);
 	}
 
 	@Test
@@ -156,12 +135,11 @@ public class CatalogueTest
 	public void modelMetadataDoesNotDefineAppearanceIdentity()
 	{
 		Catalogue catalogue = read("{\"appearances\":{"
-			+ "\"red\":{\"sourceObjectId\":1,\"modelIds\":[10],\"recolours\":{\"127\":730}},"
-			+ "\"blue\":{\"sourceObjectId\":1,\"modelIds\":[10],\"recolours\":{\"127\":44762}},"
+			+ "\"red\":{\"modelIds\":[10],\"recolours\":{\"127\":730}},"
+			+ "\"blue\":{\"modelIds\":[10],\"recolours\":{\"127\":44762}},"
 			+ "\"explicit\":{\"modelIds\":[10],\"scaleX\":200}}}");
 		assertEquals(3, catalogue.appearances.size());
 		assertNotSame(catalogue.appearances.get("red"), catalogue.appearances.get("blue"));
-		assertEquals(-1, catalogue.appearances.get("explicit").sourceObjectId);
 		assertEquals(200, catalogue.appearances.get("explicit").scaleX);
 	}
 
@@ -195,7 +173,7 @@ public class CatalogueTest
 				super.close();
 			}
 		};
-		Catalogue catalogue = Catalogue.loadCatalogue(RuneLiteAPI.GSON, null, null, reader, new StringReader("  "));
+		Catalogue catalogue = Catalogue.loadCatalogue(RuneLiteAPI.GSON, null, reader, new StringReader("  "));
 		assertTrue(closed[0]);
 		assertTrue(catalogue.targets.isEmpty());
 		assertTrue(catalogue.appearances.isEmpty());
@@ -208,6 +186,6 @@ public class CatalogueTest
 		{
 			readers[i] = new StringReader(inputs[i]);
 		}
-		return Catalogue.loadCatalogue(RuneLiteAPI.GSON, null, readers);
+		return Catalogue.loadCatalogue(RuneLiteAPI.GSON, readers);
 	}
 }

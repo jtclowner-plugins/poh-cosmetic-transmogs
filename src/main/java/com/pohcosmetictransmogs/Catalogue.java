@@ -18,7 +18,6 @@ import net.runelite.api.Client;
 import net.runelite.api.JagexColor;
 import net.runelite.api.Model;
 import net.runelite.api.ModelData;
-import net.runelite.api.ObjectComposition;
 import net.runelite.api.gameval.VarbitID;
 
 /** Indexed target semantics, appearance recipes and model construction. */
@@ -37,7 +36,7 @@ final class Catalogue
 		appearances = Collections.unmodifiableMap(data.appearances);
 	}
 
-	static Catalogue loadCatalogue(Gson gson, @Nullable Client client, Reader... readers)
+	static Catalogue loadCatalogue(Gson gson, Reader... readers)
 	{
 		CatalogueData data = new CatalogueData();
 		for (Reader reader : readers)
@@ -46,7 +45,7 @@ final class Catalogue
 			{
 				try (Reader input = reader)
 				{
-					readIntoCatalogue(gson, client, input, data);
+					readIntoCatalogue(gson, input, data);
 				}
 				catch (IOException ex)
 				{
@@ -67,7 +66,7 @@ final class Catalogue
 		return new InputStreamReader(stream, StandardCharsets.UTF_8);
 	}
 
-	private static void readIntoCatalogue(Gson gson, @Nullable Client client,
+	private static void readIntoCatalogue(Gson gson,
 		Reader reader, CatalogueData data)
 	{
 		JsonObject json = gson.fromJson(reader, JsonObject.class);
@@ -91,10 +90,10 @@ final class Catalogue
 				JsonObject source = entry.getValue().getAsJsonObject();
 				Recipe recipe = gson.fromJson(expandScale(source), Recipe.class);
 				recipe.key = entry.getKey();
-				recipe.normalize(client);
+				recipe.normalize();
 				JsonObject defaults = gson.toJsonTree(recipe, Definition.class).getAsJsonObject();
-				recipe.closed = readState(gson, client, source, "closed", defaults, recipe);
-				recipe.open = readState(gson, client, source, "open", defaults, recipe);
+				recipe.closed = readState(gson, source, "closed", defaults, recipe);
+				recipe.open = readState(gson, source, "open", defaults, recipe);
 				if (source.has("placements"))
 				{
 					for (Map.Entry<String, JsonElement> placement : source.getAsJsonObject("placements").entrySet())
@@ -112,7 +111,7 @@ final class Catalogue
 		}
 	}
 
-	private static Definition readState(Gson gson, @Nullable Client client, JsonObject source,
+	private static Definition readState(Gson gson, JsonObject source,
 		String name, JsonObject defaults, Recipe recipe)
 	{
 		if (!source.has(name))
@@ -121,7 +120,7 @@ final class Catalogue
 		}
 		Definition state = gson.fromJson(overlay(defaults,
 			expandScale(source.getAsJsonObject(name))), Definition.class);
-		state.normalize(client);
+		state.normalize();
 		return state;
 	}
 
@@ -303,7 +302,6 @@ final class Catalogue
 	@EqualsAndHashCode(callSuper = true)
 	static class Definition extends Calibration
 	{
-		int sourceObjectId = -1;
 		int sizeX;
 		int sizeY;
 		int[] modelIds = NO_IDS;
@@ -324,33 +322,13 @@ final class Catalogue
 			scaleX = scaleHeight = scaleY = 0;
 		}
 
-		void normalize(@Nullable Client client)
+		void normalize()
 		{
-			ObjectComposition source = client != null && sourceObjectId >= 0
-				&& (sizeX == 0 || sizeY == 0 || scaleX == 0 || scaleY == 0)
-				? client.getObjectDefinition(sourceObjectId) : null;
-			int nativeSizeX = source == null ? Math.max(1, sizeX) : source.getSizeX();
-			int nativeSizeY = source == null ? Math.max(1, sizeY) : source.getSizeY();
-			if (sizeX == 0)
-			{
-				sizeX = nativeSizeX;
-			}
-			if (sizeY == 0)
-			{
-				sizeY = nativeSizeY;
-			}
-			if (scaleX == 0)
-			{
-				scaleX = ModelFactory.footprintScale(NATIVE_MODEL_SCALE, sizeX, nativeSizeX);
-			}
-			if (scaleY == 0)
-			{
-				scaleY = ModelFactory.footprintScale(NATIVE_MODEL_SCALE, sizeY, nativeSizeY);
-			}
-			if (scaleHeight == 0)
-			{
-				scaleHeight = Math.min(scaleX, scaleY);
-			}
+			if (sizeX == 0) { sizeX = 1; }
+			if (sizeY == 0) { sizeY = 1; }
+			if (scaleX == 0) { scaleX = NATIVE_MODEL_SCALE; }
+			if (scaleY == 0) { scaleY = NATIVE_MODEL_SCALE; }
+			if (scaleHeight == 0) { scaleHeight = NATIVE_MODEL_SCALE; }
 		}
 
 		Definition(int sizeX, int sizeY, int[] modelIds, int animationId)
@@ -546,10 +524,6 @@ final class Catalogue
 			return ((((orientation + 256) & 2047) / 512) & 1) != 0;
 		}
 
-		static int footprintScale(int nativeScale, int targetTiles, int sourceTiles)
-		{
-			return Math.max(1, Math.round((float) nativeScale * targetTiles / Math.max(1, sourceTiles)));
-		}
 
 	}
 }

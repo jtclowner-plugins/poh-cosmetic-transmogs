@@ -15,7 +15,7 @@ public class CalibrationTest
 	@Test
 	public void everySelectablePlacementRetainsItsEffectiveTransform() throws Exception
 	{
-		Catalogue catalogue = Catalogue.loadCatalogue(RuneLiteAPI.GSON, null, Catalogue.openCatalogueReader());
+		Catalogue catalogue = Catalogue.loadCatalogue(RuneLiteAPI.GSON, Catalogue.openCatalogueReader());
 		try (InputStreamReader reader = new InputStreamReader(
 			getClass().getResourceAsStream("/calibrations.json"), StandardCharsets.UTF_8))
 		{

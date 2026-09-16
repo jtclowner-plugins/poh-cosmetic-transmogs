@@ -18,7 +18,7 @@ public class ModelSnapshotTest
 	@Test
 	public void modelStatesPreserveGeometryAnimationsAndColours() throws Exception
 	{
-		Catalogue catalogue = Catalogue.loadCatalogue(RuneLiteAPI.GSON, null, Catalogue.openCatalogueReader());
+		Catalogue catalogue = Catalogue.loadCatalogue(RuneLiteAPI.GSON, Catalogue.openCatalogueReader());
 		Properties expected = new Properties();
 		try (InputStream input = getClass().getResourceAsStream("/model-states.properties"))
 		{
@@ -30,8 +30,7 @@ public class ModelSnapshotTest
 			for (Catalogue.Definition state : new Catalogue.Definition[] {recipe, recipe.closed, recipe.open})
 			{
 				JsonObject value = new JsonObject();
-				value.add("geometry", RuneLiteAPI.GSON.toJsonTree(new int[] {state.sourceObjectId,
-					state.sizeX, state.sizeY, state.getScaleX(), state.getScaleHeight(), state.getScaleY(),
+				value.add("geometry", RuneLiteAPI.GSON.toJsonTree(new int[] {state.sizeX, state.sizeY, state.getScaleX(), state.getScaleHeight(), state.getScaleY(),
 					state.animationId, state.spawnAnimationId, state.spawnOnce ? 1 : 0}));
 				value.add("models", RuneLiteAPI.GSON.toJsonTree(state.modelIds));
 				value.add("from", RuneLiteAPI.GSON.toJsonTree(state.recolours.keySet()));
