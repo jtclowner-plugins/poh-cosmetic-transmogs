@@ -53,6 +53,7 @@ class PohCosmeticTransmogsManager
 	private final Set<TileObject> retiredObjects = identitySet();
 	private final Set<TileObject> suppressedObjects = identitySet();
 	private final Map<TileObject, RuneLiteObject> activeReplacements = new IdentityHashMap<>();
+	private final Map<TileObject, AppliedReplacement> appliedReplacements = new IdentityHashMap<>();
 	private final Map<RuneLiteObject, RuneLiteObject> transitionEffects = new IdentityHashMap<>();
 	private final Map<PlacementKey, TileObject> scenePlacements = new HashMap<>();
 	private final Map<PlacementKey, Integer> recentDespawnedStates = new HashMap<>();
@@ -532,9 +533,6 @@ class PohCosmeticTransmogsManager
 		}
 
 		String appearanceKey = resolved.appearance.key;
-		RuneLiteObject replacement = resolved.appearance.bobbing
-			? new BobbingRuneLiteObject(client) : client.createRuneLiteObject();
-		replacement.setModel(model);
 		int baseOrientation = (gameObject.getOrientation()
 			+ targetsById.get(gameObject.getId()).target.orientationOffset) & 2047;
 		int correction = calibration.getRotation();
@@ -562,6 +560,28 @@ class PohCosmeticTransmogsManager
 			anchor = offsetAnchor(anchor, baseOrientation,
 				calibration.getOffsetX(), calibration.getOffsetY());
 		}
+		int occupiedSpan = Math.max(definition.getSizeX(), definition.getSizeY());
+		int radius = Math.max(60, 64 * occupiedSpan - 4);
+		AppliedReplacement desired = new AppliedReplacement(model, worldView, anchor,
+			object.getPlane(), object.getZ(), defaultOrientation, radius,
+			definition.getAnimationId(), definition.getSpawnAnimationId(), definition.isSpawnOnce(),
+			resolved.appearance.bobbing, calibration.signedScaleX(), calibration.getScaleHeight(),
+			calibration.getScaleY(), calibration.getOffsetHeight());
+		AppliedReplacement current = appliedReplacements.get(object);
+		// Compare the applied inputs, not the live pose: transitions and bobbing mutate it.
+		if (current != null && current.matches(desired))
+		{
+			RuneLiteObject existing = activeReplacements.get(object);
+			RuneLiteObject effect = transitionEffects.get(existing);
+			if (existing.isActive() || effect != null && effect.isActive())
+			{
+				return;
+			}
+		}
+
+		RuneLiteObject replacement = resolved.appearance.bobbing
+			? new BobbingRuneLiteObject(client) : client.createRuneLiteObject();
+		replacement.setModel(model);
 		replacement.setLocation(anchor, object.getPlane());
 		replacement.setZ(object.getZ());
 		if (replacement instanceof BobbingRuneLiteObject)
@@ -569,12 +589,13 @@ class PohCosmeticTransmogsManager
 			((BobbingRuneLiteObject) replacement).setBaseZ(object.getZ());
 		}
 		replacement.setOrientation(defaultOrientation);
-		int occupiedSpan = Math.max(definition.getSizeX(), definition.getSizeY());
-		replacement.setRadius(Math.max(60, 64 * occupiedSpan - 4));
+		replacement.setRadius(radius);
 
+		boolean animationsAvailable = true;
 		if (definition.getAnimationId() >= 0)
 		{
 			Animation animation = client.loadAnimation(definition.getAnimationId());
+			animationsAvailable = animation != null;
 			if (animation != null)
 			{
 				PostTransformAnimationController controller = new PostTransformAnimationController(
@@ -582,6 +603,7 @@ class PohCosmeticTransmogsManager
 				replacement.setAnimationController(controller);
 				Animation spawn = definition.getSpawnAnimationId() < 0 ? null
 					: client.loadAnimation(definition.getSpawnAnimationId());
+				animationsAvailable = definition.getSpawnAnimationId() < 0 || spawn != null;
 				String spawnKey = spawnAnimationKey(gameObject);
 				if (spawn != null && (!definition.isSpawnOnce()
 					|| !playedSpawnAnimations.contains(spawnKey)))
@@ -614,6 +636,15 @@ class PohCosmeticTransmogsManager
 		replacement.setActive(true);
 		boolean newlySuppressed = suppressedObjects.add(object);
 		RuneLiteObject previous = activeReplacements.put(object, replacement);
+		// An unavailable animation must still be reconsidered by the next refresh.
+		if (animationsAvailable)
+		{
+			appliedReplacements.put(object, desired);
+		}
+		else
+		{
+			appliedReplacements.remove(object);
+		}
 		deactivateReplacement(previous);
 		if (previous == null || newlySuppressed)
 		{
@@ -848,6 +879,7 @@ class PohCosmeticTransmogsManager
 
 	private void deactivate(TileObject object)
 	{
+		appliedReplacements.remove(object);
 		RuneLiteObject replacement = activeReplacements.remove(object);
 		deactivateReplacement(replacement);
 		if (replacement != null)
@@ -876,6 +908,7 @@ class PohCosmeticTransmogsManager
 			deactivateReplacement(replacement);
 		}
 		activeReplacements.clear();
+		appliedReplacements.clear();
 		suppressedObjects.clear();
 		publishSnapshots();
 	}
@@ -1011,6 +1044,34 @@ class PohCosmeticTransmogsManager
 			startScaleTransition(object, binding, opening);
 		}
 	}
+	@Value
+	private static class AppliedReplacement
+	{
+		@EqualsAndHashCode.Exclude
+		Model model;
+		@EqualsAndHashCode.Exclude
+		WorldView worldView;
+		LocalPoint anchor;
+		int plane;
+		int z;
+		int orientation;
+		int radius;
+		int animationId;
+		int spawnAnimationId;
+		boolean spawnOnce;
+		boolean bobbing;
+		int scaleX;
+		int scaleHeight;
+		int scaleY;
+		int offsetHeight;
+
+		private boolean matches(AppliedReplacement other)
+		{
+			// A newly loaded/recoloured model or a different WorldView must never match.
+			return model == other.model && worldView == other.worldView && equals(other);
+		}
+	}
+
 	@Value
 	private static class ResolvedReplacement
 	{

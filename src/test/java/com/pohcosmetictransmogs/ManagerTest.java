@@ -30,6 +30,166 @@ import static org.junit.Assert.*;
 public class ManagerTest
 {
 	@Test
+	public void unchangedRefreshPreservesReplacementAndAnimationWithoutRendererWork()
+	{
+		Harness h = new Harness("\"animationId\":99,");
+		GameObject object = h.object(1);
+		h.loaded.add(object);
+		h.manager.addObject(object);
+		RuneLiteObject replacement = h.only();
+		replacement.tick(3);
+		int invalidations = h.invalidations;
+		int registrations = h.registrations;
+		int removals = h.removals;
+		int lights = h.lights;
+		int modelLoads = h.modelLoads;
+		int creations = h.creations;
+		int animationLoads = h.animationLoads;
+		h.manager.syncVisibleLevels();
+		h.manager.setHidden(false);
+		h.manager.reconcileLoadedWorldViews();
+		assertSame(replacement, h.only());
+		assertEquals(3, replacement.getAnimationController().getFrame());
+		assertEquals(invalidations, h.invalidations);
+		assertEquals(registrations, h.registrations);
+		assertEquals(removals, h.removals);
+		assertEquals(lights, h.lights);
+		assertEquals(modelLoads, h.modelLoads);
+		assertEquals(creations, h.creations);
+		assertEquals(animationLoads, h.animationLoads);
+	}
+
+	@Test
+	public void changedPlacementRebuildsButRepeatedPlacementDoesNot()
+	{
+		Harness h = new Harness("");
+		h.manager.addObject(h.object(1));
+		for (Runnable change : new Runnable[] {
+			() -> h.orientation = 512, () -> h.z = 25, () -> h.sizeX = 2,
+			() -> h.sizeY = 3, () -> h.sceneX = 8, () -> h.sceneY = 9,
+			() -> { h.objectPlane = 1; h.worldPlane = 1; }})
+		{
+			RuneLiteObject previous = h.only();
+			change.run();
+			h.manager.setHidden(false);
+			assertNotSame(previous, h.only());
+			assertFalse(previous.isActive());
+			RuneLiteObject replacement = h.only();
+			h.manager.setHidden(false);
+			assertSame(replacement, h.only());
+		}
+		assertEquals(512, h.only().getOrientation());
+		assertEquals(25, h.only().getZ());
+		assertEquals(1, h.only().getLevel());
+	}
+
+	@Test
+	public void refreshPreservesBobbingAndInProgressTransition()
+	{
+		Harness h = new Harness("\"bobbing\":true,");
+		GameObject closed = h.object(1);
+		h.manager.addObject(closed);
+		h.manager.removeObject(closed);
+		h.manager.addObject(h.object(2));
+		RuneLiteObject replacement = h.only();
+		replacement.tick(40);
+		assertEquals(-4, replacement.getZ());
+		h.manager.setHidden(false);
+		assertSame(replacement, h.only());
+		assertEquals(-4, replacement.getZ());
+		assertNotNull(replacement.getAnimationController());
+	}
+
+	@Test
+	public void refreshDoesNotInterruptShatterHandoff()
+	{
+		Harness h = new Harness("\"open\":{\"modelIds\":[20]},"
+			+ "\"transitionModelId\":30,\"transitionAnimationId\":100,\"transitionHandoff\":20,");
+		GameObject closed = h.object(1);
+		h.manager.addObject(closed);
+		h.manager.removeObject(closed);
+		h.manager.addObject(h.object(2));
+		RuneLiteObject effect = h.only();
+		h.manager.setHidden(false);
+		assertSame(effect, h.only());
+		effect.tick(2);
+		assertEquals(2, h.active.size());
+		h.manager.setHidden(false);
+		assertEquals(2, h.active.size());
+		effect.tick(8);
+		assertEquals(1, h.active.size());
+		assertNotSame(effect, h.only());
+	}
+
+	@Test
+	public void colourRefreshAndVisibilityRecoveryStillReplaceAppliedState()
+	{
+		Harness h = new Harness("");
+		GameObject object = h.object(1);
+		h.manager.addObject(object);
+		RuneLiteObject previous = h.only();
+		h.manager.refreshColours();
+		assertNotSame(previous, h.only());
+		assertEquals(2, h.lights);
+		h.worldPlane = 1;
+		h.manager.syncVisibleLevels();
+		assertTrue(h.active.isEmpty());
+		assertFalse(h.manager.shouldDrawObject(object));
+		h.worldPlane = 0;
+		h.manager.syncVisibleLevels();
+		assertEquals(1, h.active.size());
+		h.manager.removeObject(object);
+		h.manager.addObject(object);
+		assertEquals(1, h.active.size());
+	}
+
+	@Test
+	public void refreshRecoversAnUnregisteredReplacement()
+	{
+		Harness h = new Harness("");
+		h.manager.addObject(h.object(1));
+		RuneLiteObject previous = h.only();
+		previous.setActive(false);
+		h.manager.setHidden(false);
+		assertNotSame(previous, h.only());
+	}
+
+	@Test
+	public void unavailableAnimationsRemainEligibleForRefresh()
+	{
+		for (int missingId : new int[] {99, 100})
+		{
+			Harness h = new Harness("\"animationId\":99,\"spawnAnimationId\":100,");
+			h.missingAnimationId = missingId;
+			h.manager.addObject(h.object(1));
+			RuneLiteObject previous = h.only();
+			h.missingAnimationId = -1;
+			h.manager.setHidden(false);
+			assertNotSame(previous, h.only());
+			assertEquals(100, h.only().getAnimationController().getAnimation().getId());
+		}
+	}
+
+	@Test
+	public void refreshDistinguishesWorldViewsWithTheSameId()
+	{
+		Harness h = new Harness("");
+		h.manager.addObject(h.object(1));
+		RuneLiteObject previous = h.only();
+		h.objectWorld = ApiDouble.of(WorldView.class, (name, args) ->
+		{
+			switch (name)
+			{
+				case "getId": return h.world.getId();
+				case "getScene": return h.world.getScene();
+				default: return DEFAULT;
+			}
+		});
+		h.manager.setHidden(false);
+		assertNotSame(previous, h.only());
+	}
+
+	@Test
 	public void rendererAvailabilityRequiresGpuAndCallbacks()
 	{
 		Harness h = new Harness("");
@@ -400,12 +560,24 @@ public class ManagerTest
 		final Client client;
 		final WorldView world;
 		final PohCosmeticTransmogsManager manager;
+		WorldView objectWorld;
+		int missingAnimationId = -1;
 		boolean modelsAvailable = true;
 		boolean gpu = true;
 		boolean callbacksAvailable = true;
 		int sizeX = 1;
 		int sizeY = 1;
 		int orientation;
+		int z;
+		int sceneX = 5;
+		int sceneY = 5;
+		int objectPlane;
+		int worldPlane;
+		int creations;
+		int registrations;
+		int removals;
+		int modelLoads;
+		int animationLoads;
 		int invalidations;
 		int lights;
 		GameState gameState = GameState.LOGGED_IN;
@@ -432,6 +604,7 @@ public class ManagerTest
 				switch (name)
 				{
 					case "getId": return WorldView.TOPLEVEL;
+					case "getPlane": return worldPlane;
 					case "getScene": return scene;
 					case "worldViews": return ApiDouble.of(IndexedObjectSet.class,
 						(n, a) -> n.equals("iterator") ? Collections.emptyIterator() : DEFAULT);
@@ -451,14 +624,16 @@ public class ManagerTest
 					case "getDrawCallbacks": return callbacksAvailable ? callbacks : null;
 					case "getTopLevelWorldView":
 					case "getWorldView": return world;
-					case "createRuneLiteObject": return new RuneLiteObject(client());
-					case "registerRuneLiteObject": active.add((RuneLiteObject) args[0]); return null;
-					case "removeRuneLiteObject": active.remove(args[0]); return null;
+					case "createRuneLiteObject": creations++; return new RuneLiteObject(client());
+					case "registerRuneLiteObject": registrations++; active.add((RuneLiteObject) args[0]); return null;
+					case "removeRuneLiteObject": removals++; active.remove(args[0]); return null;
 					case "isRuneLiteObjectRegistered": return active.contains(args[0]);
-					case "loadModelData": return modelsAvailable ? modelData() : null;
+					case "loadModelData": modelLoads++; return modelsAvailable ? modelData() : null;
 					case "mergeModels": return args[0] instanceof Model[] ? model() : modelData();
 					case "applyTransformations": operations.add("pose"); return model();
-					case "loadAnimation": return animation((int) args[0]);
+					case "loadAnimation":
+						animationLoads++;
+						return (int) args[0] == missingAnimationId ? null : animation((int) args[0]);
 					case "getGameState": return gameState;
 					case "getCameraFpX": return 704f;
 					case "getViewportWidth": return 800;
@@ -489,9 +664,11 @@ public class ManagerTest
 				switch (name)
 				{
 					case "getId": return id;
-					case "getWorldView": return world;
-					case "getSceneMinLocation": return new Point(5, 5);
-					case "getSceneMaxLocation": return new Point(4 + sizeX, 4 + sizeY);
+					case "getWorldView": return objectWorld == null ? world : objectWorld;
+					case "getSceneMinLocation": return new Point(sceneX, sceneY);
+					case "getSceneMaxLocation": return new Point(sceneX - 1 + sizeX, sceneY - 1 + sizeY);
+					case "getPlane": return objectPlane;
+					case "getZ": return z;
 					case "sizeX": return sizeX;
 					case "sizeY": return sizeY;
 					case "getOrientation": return orientation;
