@@ -43,6 +43,7 @@ import net.runelite.api.widgets.Widget;
 class PohCosmeticTransmogsManager
 {
 	private static final int SCALE_TRANSITION_DURATION = 30;
+	private static final int MAX_MODEL_RETRY_TICKS = 100;
 	private final Client client;
 	private final Catalogue.ModelFactory modelFactory;
 	private final Map<String, String> selections = new HashMap<>();
@@ -67,7 +68,9 @@ class PohCosmeticTransmogsManager
 	private volatile Set<TileObject> activeSnapshot = Collections.emptySet();
 	private volatile boolean running;
 	private volatile boolean hidden;
-	private final Set<TileObject> pendingModels = identitySet();
+	private final Map<TileObject, PendingModel> pendingModels = new IdentityHashMap<>();
+	private long modelRetryTick;
+	private long nextModelRetryTick = Long.MAX_VALUE;
 	private Catalogue catalogue = Catalogue.current;
 	private int zoneInvalidationBatchDepth;
 	private boolean snapshotsDirty;
@@ -209,11 +212,45 @@ class PohCosmeticTransmogsManager
 
 	void loadMissingModels()
 	{
-		if (running && !hidden)
+		if (!running || hidden || pendingModels.isEmpty())
 		{
-			for (TileObject object : new ArrayList<>(pendingModels))
+			return;
+		}
+		if (++modelRetryTick < nextModelRetryTick)
+		{
+			return;
+		}
+		beginZoneInvalidationBatch();
+		try
+		{
+			for (TileObject object : new ArrayList<>(pendingModels.keySet()))
 			{
-				refreshObject(object);
+				if (pendingModels.get(object).nextTick <= modelRetryTick)
+				{
+					refreshObject(object);
+				}
+			}
+		}
+		finally
+		{
+			nextModelRetryTick = Long.MAX_VALUE;
+			for (PendingModel pending : pendingModels.values())
+			{
+				nextModelRetryTick = Math.min(nextModelRetryTick, pending.nextTick);
+			}
+			endZoneInvalidationBatch();
+		}
+	}
+
+	private void resetModelRetries(@Nullable WorldView worldView)
+	{
+		for (Map.Entry<TileObject, PendingModel> entry : pendingModels.entrySet())
+		{
+			if (worldView == null || entry.getKey().getWorldView() == worldView)
+			{
+				entry.getValue().delay = 0;
+				entry.getValue().nextTick = modelRetryTick;
+				nextModelRetryTick = modelRetryTick;
 			}
 		}
 	}
@@ -253,6 +290,7 @@ class PohCosmeticTransmogsManager
 			{
 				// Suppress the retired state until its despawn event so it cannot flash.
 				retiredObjects.add(candidate);
+				pendingModels.remove(candidate);
 				deactivate(candidate);
 				sceneObjects.remove(candidate);
 				setSuppressed(candidate, !hidden);
@@ -351,6 +389,7 @@ class PohCosmeticTransmogsManager
 	void scheduleSceneScan()
 	{
 		fullSceneScanPending = running;
+		resetModelRetries(null);
 	}
 
 	void worldViewLoaded(WorldView worldView)
@@ -360,6 +399,7 @@ class PohCosmeticTransmogsManager
 			return;
 		}
 		scanWorldView(worldView);
+		resetModelRetries(worldView);
 		pendingSceneScans.add(worldView);
 	}
 
@@ -509,6 +549,7 @@ class PohCosmeticTransmogsManager
 			return;
 		}
 		renderer = callbacks;
+		resetModelRetries(null);
 		invalidateSuppressedZones();
 	}
 
@@ -565,6 +606,7 @@ class PohCosmeticTransmogsManager
 			{
 				if (targetKeys == null || changedTarget(object.getId(), targetKeys))
 				{
+					pendingModels.remove(object);
 					refreshObject(object);
 				}
 			}
@@ -754,9 +796,9 @@ class PohCosmeticTransmogsManager
 	private ResolvedReplacement resolve(GameObject object)
 	{
 		TargetBinding target = targetsById.get(object.getId());
-		pendingModels.remove(object);
 		if (target == null)
 		{
+			pendingModels.remove(object);
 			return null;
 		}
 		Catalogue.Definition definition = target.state(object.getId());
@@ -764,13 +806,17 @@ class PohCosmeticTransmogsManager
 		Model model = loadModel(target, definition, target.appearance.stateKey(definition), calibration);
 		if (model == null)
 		{
-			pendingModels.add(object);
+			PendingModel pending = pendingModels.computeIfAbsent(object, ignored -> new PendingModel());
+			pending.delay = Math.min(MAX_MODEL_RETRY_TICKS, Math.max(1, pending.delay * 2));
+			pending.nextTick = modelRetryTick + pending.delay;
+			nextModelRetryTick = Math.min(nextModelRetryTick, pending.nextTick);
 			if (reportedModelFailures.add(target.appearance.key))
 			{
 				log.warn("Unable to load appearance {}", target.appearance.key);
 			}
 			return null;
 		}
+		pendingModels.remove(object);
 		return new ResolvedReplacement(definition, model, target.appearance, calibration);
 	}
 
@@ -1190,6 +1236,12 @@ class PohCosmeticTransmogsManager
 			startScaleTransition(object, binding, opening);
 		}
 	}
+	private static final class PendingModel
+	{
+		int delay;
+		long nextTick;
+	}
+
 	@Value
 	private static class AppliedReplacement
 	{

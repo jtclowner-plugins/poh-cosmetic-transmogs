@@ -964,6 +964,73 @@ public class ManagerTest
 		}
 	}
 
+	@Test
+	public void missingModelsBackOffButRecoverWithinTheMaximumDelay()
+	{
+		Harness h = new Harness("");
+		h.modelsAvailable = false;
+		h.manager.addObject(h.object(1));
+		for (int tick = 0; tick < 200; tick++)
+		{
+			h.manager.loadMissingModels();
+		}
+		assertTrue(h.modelLoads < 15);
+		assertEquals(0, h.invalidations);
+		h.modelsAvailable = true;
+		for (int tick = 0; tick < 100; tick++)
+		{
+			h.manager.loadMissingModels();
+		}
+		assertEquals(1, h.active.size());
+	}
+
+	@Test
+	public void retiredAndDespawnedObjectsNeverReappearFromTheRetryQueue()
+	{
+		Harness h = new Harness("");
+		h.modelsAvailable = false;
+		GameObject closed = h.object(1);
+		GameObject open = h.object(2);
+		h.manager.addObject(closed);
+		h.manager.addObject(open);
+		h.modelsAvailable = true;
+		h.manager.loadMissingModels();
+		assertEquals(1, h.active.size());
+		h.manager.removeObject(open);
+		int loads = h.modelLoads;
+		for (int tick = 0; tick < 200; tick++)
+		{
+			h.manager.loadMissingModels();
+		}
+		assertTrue(h.active.isEmpty());
+		assertEquals(loads, h.modelLoads);
+	}
+
+	@Test
+	public void relevantTransitionsResetMissingModelBackoff()
+	{
+		for (int transition = 0; transition < 3; transition++)
+		{
+			Harness h = new Harness("");
+			h.modelsAvailable = false;
+			h.manager.addObject(h.object(1));
+			for (int tick = 0; tick < 200; tick++)
+			{
+				h.manager.loadMissingModels();
+			}
+			h.modelsAvailable = true;
+			switch (transition)
+			{
+				case 0: h.manager.scheduleSceneScan(); break;
+				case 1: h.callbacks = h.newRenderer(); h.manager.syncRenderer(); break;
+				case 2: h.manager.refreshColours(); break;
+				default: throw new AssertionError();
+			}
+			h.manager.loadMissingModels();
+			assertEquals(1, h.active.size());
+		}
+	}
+
 	private static final class ChildWorld
 	{
 		final List<GameObject> loaded = new ArrayList<>();
