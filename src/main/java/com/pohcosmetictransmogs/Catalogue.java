@@ -198,7 +198,6 @@ final class Catalogue
 	{
 		String key;
 		String name;
-		String category;
 		transient Definition closed;
 		transient Definition open;
 		String[] bindTargets = {};

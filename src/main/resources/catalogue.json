@@ -40,8 +40,6 @@
   "appearances": {
     "circle_1": {
       "name": "Circle 1",
-      "category": "portals",
-      "sourceObjectId": 47346,
       "sizeX": 2,
       "sizeY": 2,
       "modelIds": [48087],
@@ -58,8 +56,6 @@
     },
     "circle_2": {
       "name": "Circle 2",
-      "category": "portals",
-      "sourceObjectId": 4408,
       "sizeX": 2,
       "sizeY": 2,
       "modelIds": [2318],
@@ -76,8 +72,6 @@
     },
     "ferox_dark_portal": {
       "name": "Ferox Dark",
-      "category": "portals",
-      "sourceObjectId": 26642,
       "sizeX": 3,
       "sizeY": 1,
       "modelIds": [10734, 11233],
@@ -94,8 +88,6 @@
     },
     "ferox_light_portal": {
       "name": "Ferox Light",
-      "category": "portals",
-      "sourceObjectId": 26732,
       "sizeX": 3,
       "sizeY": 1,
       "modelIds": [10734, 11233],
@@ -112,8 +104,6 @@
     },
     "ferox_red_portal": {
       "name": "Ferox Red",
-      "category": "portals",
-      "sourceObjectId": 26727,
       "sizeX": 3,
       "sizeY": 1,
       "modelIds": [10734, 11233],
@@ -129,8 +119,6 @@
     },
     "isle_of_souls_dark_portal": {
       "name": "Isle of Souls Dark",
-      "category": "portals",
-      "sourceObjectId": 40460,
       "sizeX": 3,
       "sizeY": 1,
       "modelIds": [41436],
@@ -140,13 +128,10 @@
       },
       "placements": {
         "entrance_portal,magic_wardrobe": {}
-      },
-      "scale": 128
+      }
     },
     "isle_of_souls_dead_trees": {
       "name": "Isle of Souls Dead Trees",
-      "category": "portals",
-      "sourceObjectId": 40461,
       "sizeX": 3,
       "sizeY": 1,
       "modelIds": [41437],
@@ -157,13 +142,10 @@
       "placements": {
         "entrance_portal": {"rotation": 1024},
         "magic_wardrobe": {}
-      },
-      "scale": 128
+      }
     },
     "isle_of_souls_light_portal": {
       "name": "Isle of Souls Light",
-      "category": "portals",
-      "sourceObjectId": 40476,
       "sizeX": 3,
       "sizeY": 1,
       "modelIds": [41435],
@@ -174,13 +156,10 @@
       },
       "placements": {
         "entrance_portal,magic_wardrobe": {}
-      },
-      "scale": 128
+      }
     },
     "pest_control_purple_portal": {
       "name": "Pest Control Purple",
-      "category": "portals",
-      "sourceObjectId": 1747,
       "sizeX": 3,
       "sizeY": 3,
       "modelIds": [14533, 14527, 14528],
@@ -191,13 +170,10 @@
       },
       "placements": {
         "entrance_portal": {"rotation": 1536}
-      },
-      "scale": 128
+      }
     },
     "pest_control_blue_portal": {
       "name": "Pest Control Blue",
-      "category": "portals",
-      "sourceObjectId": 1748,
       "sizeX": 3,
       "sizeY": 3,
       "modelIds": [14533, 14526],
@@ -209,13 +185,10 @@
       },
       "placements": {
         "entrance_portal": {"rotation": 1536}
-      },
-      "scale": 128
+      }
     },
     "pest_control_yellow_portal": {
       "name": "Pest Control Yellow",
-      "category": "portals",
-      "sourceObjectId": 1749,
       "sizeX": 3,
       "sizeY": 3,
       "modelIds": [14533, 14522],
@@ -227,13 +200,10 @@
       },
       "placements": {
         "entrance_portal": {"rotation": 0}
-      },
-      "scale": 128
+      }
     },
     "pest_control_red_portal": {
       "name": "Pest Control Red",
-      "category": "portals",
-      "sourceObjectId": 1750,
       "sizeX": 3,
       "sizeY": 3,
       "modelIds": [14533, 14523, 14524, 14525],
@@ -245,13 +215,10 @@
       },
       "placements": {
         "entrance_portal": {"rotation": 0}
-      },
-      "scale": 128
+      }
     },
     "a_kingdom_divided_portal": {
       "name": "A Kingdom Divided",
-      "category": "portals",
-      "sourceObjectId": 41807,
       "sizeX": 4,
       "sizeY": 1,
       "modelIds": [6194],
@@ -268,8 +235,6 @@
     },
     "abyssal_portal": {
       "name": "Abyssal",
-      "category": "portals",
-      "sourceObjectId": 49242,
       "sizeX": 3,
       "sizeY": 1,
       "modelIds": [49397],
@@ -279,13 +244,10 @@
       },
       "placements": {
         "entrance_portal": {"rotation": 1024}
-      },
-      "scale": 128
+      }
     },
     "castle_drakan_portal": {
       "name": "Castle Drakan",
-      "category": "portals",
-      "sourceObjectId": 61216,
       "sizeX": 3,
       "sizeY": 1,
       "modelIds": [60527],
@@ -302,8 +264,6 @@
     },
     "christmas_portal": {
       "name": "Christmas",
-      "category": "portals",
-      "sourceObjectId": 46442,
       "sizeX": 3,
       "sizeY": 1,
       "modelIds": [46929],
@@ -318,8 +278,6 @@
     },
     "clan_hall_portal": {
       "name": "Clan Hall",
-      "category": "portals",
-      "sourceObjectId": 41724,
       "sizeX": 3,
       "sizeY": 1,
       "modelIds": [42246],
@@ -336,8 +294,6 @@
     },
     "cox_olm_barrier": {
       "name": "CoX Olm Barrier",
-      "category": "portals",
-      "sourceObjectId": 29879,
       "sizeX": 4,
       "sizeY": 1,
       "modelIds": [32750],
@@ -348,13 +304,10 @@
       },
       "placements": {
         "entrance_portal": {"rotation": 1024, "scale": 102}
-      },
-      "scale": 128
+      }
     },
     "dt2_portal": {
       "name": "DT2 Portal",
-      "category": "portals",
-      "sourceObjectId": 12334,
       "sizeX": 2,
       "sizeY": 1,
       "modelIds": [37828],
@@ -372,8 +325,6 @@
     },
     "elven_portal": {
       "name": "Elven Portal",
-      "category": "portals",
-      "sourceObjectId": 34947,
       "sizeX": 3,
       "sizeY": 1,
       "modelIds": [38744],
@@ -389,8 +340,6 @@
     },
     "evil_chicken_lair_portal": {
       "name": "Evil Chicken Lair",
-      "category": "portals",
-      "sourceObjectId": 12260,
       "sizeX": 3,
       "sizeY": 1,
       "modelIds": [12635, 11233],
@@ -406,8 +355,6 @@
     },
     "gauntlet_portal": {
       "name": "Gauntlet",
-      "category": "portals",
-      "sourceObjectId": 36081,
       "sizeX": 3,
       "sizeY": 1,
       "modelIds": [37928],
@@ -422,8 +369,6 @@
     },
     "golem_portal": {
       "name": "Golem / Uzer",
-      "category": "portals",
-      "sourceObjectId": 6282,
       "sizeX": 3,
       "sizeY": 1,
       "modelIds": [6194, 6195],
@@ -435,13 +380,10 @@
       "placements": {
         "entrance_portal": {"rotation": 1024},
         "magic_wardrobe": {"scaleHeight": 90, "scaleY": 50, "offsetY": -16}
-      },
-      "scale": 128
+      }
     },
     "gwenith_glide_portal": {
       "name": "Gwenith Glide",
-      "category": "portals",
-      "sourceObjectId": 58942,
       "sizeX": 2,
       "sizeY": 2,
       "modelIds": [37828],
@@ -459,8 +401,6 @@
     },
     "infernal_rift": {
       "name": "Infernal Rift",
-      "category": "portals",
-      "sourceObjectId": 56397,
       "sizeX": 4,
       "sizeY": 4,
       "modelIds": [44082],
@@ -476,8 +416,6 @@
     },
     "myths_guild_portal": {
       "name": "Myths Guild",
-      "category": "portals",
-      "sourceObjectId": 31618,
       "sizeX": 3,
       "sizeY": 1,
       "modelIds": [11231, 34416],
@@ -489,13 +427,10 @@
       "placements": {
         "entrance_portal": {"rotation": 1024},
         "magic_wardrobe": {"scaleHeight": 90, "offsetY": -10}
-      },
-      "scale": 128
+      }
     },
     "node_portal": {
       "name": "Node Portal",
-      "category": "portals",
-      "sourceObjectId": 42819,
       "sizeX": 4,
       "sizeY": 1,
       "modelIds": [42962],
@@ -512,8 +447,6 @@
     },
     "prifddinas_agility_portal": {
       "name": "Prifddinas Agility",
-      "category": "portals",
-      "sourceObjectId": 36240,
       "sizeX": 1,
       "sizeY": 1,
       "modelIds": [37828],
@@ -525,13 +458,10 @@
       "placements": {
         "entrance_portal": {"rotation": 1536},
         "magic_wardrobe": {"scaleX": 60, "scaleHeight": 105, "scaleY": 300, "offsetY": -16}
-      },
-      "scale": 128
+      }
     },
     "raging_echoes_portal": {
       "name": "Raging Echoes",
-      "category": "portals",
-      "sourceObjectId": 56074,
       "sizeX": 2,
       "sizeY": 1,
       "modelIds": [55509, 40773],
@@ -547,8 +477,6 @@
     },
     "recipe_for_disaster_portal": {
       "name": "Recipe for Disaster",
-      "category": "portals",
-      "sourceObjectId": 12355,
       "sizeX": 2,
       "sizeY": 2,
       "modelIds": [13691, 13692],
@@ -564,8 +492,6 @@
     },
     "sepulchre_portal": {
       "name": "Sepulchre",
-      "category": "portals",
-      "sourceObjectId": 38829,
       "sizeX": 3,
       "sizeY": 1,
       "modelIds": [40180],
@@ -581,8 +507,6 @@
     },
     "shadow_realm_portal": {
       "name": "Shadow Realm",
-      "category": "portals",
-      "sourceObjectId": 33037,
       "sizeX": 3,
       "sizeY": 1,
       "modelIds": [35609],
@@ -598,8 +522,6 @@
     },
     "trouble_brewing_portal": {
       "name": "Trouble Brewing",
-      "category": "portals",
-      "sourceObjectId": 15996,
       "sizeX": 3,
       "sizeY": 1,
       "modelIds": [11233, 15138],
@@ -609,13 +531,10 @@
       },
       "placements": {
         "entrance_portal": {"rotation": 1024}
-      },
-      "scale": 128
+      }
     },
     "wizards_tower_portal": {
       "name": "Wizards' Tower",
-      "category": "portals",
-      "sourceObjectId": 43765,
       "sizeX": 3,
       "sizeY": 3,
       "modelIds": [44082],
@@ -631,8 +550,6 @@
     },
     "tob_monumental_chest": {
       "name": "ToB Chest",
-      "category": "containers",
-      "sourceObjectId": 32991,
       "sizeX": 3,
       "sizeY": 2,
       "modelIds": [35425],
@@ -640,19 +557,15 @@
         "TOB_CHEST": [-10317]
       },
       "open": {
-        "sourceObjectId": 41746,
         "modelIds": [42281]
       },
       "placements": {
         "treasure_chest,toy_box": {"rotation": 1024, "offsetY": 30, "scale": 82},
         "fancy_dress_box": {"scale": 100}
-      },
-      "scale": 128
+      }
     },
     "toa_sarcophagus": {
       "name": "ToA Sarcophagus",
-      "category": "containers",
-      "sourceObjectId": 44825,
       "sizeX": 3,
       "sizeY": 2,
       "modelIds": [46285],
@@ -661,7 +574,6 @@
         "TOA_CONTAINERS": [6550, 6573, 6592, 6705, 6808, 6825, 6827, 6829, 6833, 6835, 6837, 6841, 6843, 6845, 6848, 6850, 6852, 6856, 6858, 6860, 6864, 6866, 6868]
       },
       "open": {
-        "sourceObjectId": 44934,
         "animationId": 9506,
         "spawnAnimationId": 9505
       },
@@ -669,13 +581,10 @@
         "treasure_chest": {"rotation": -1024, "scaleX": 85, "scaleHeight": 85, "scaleY": 80, "offsetY": 25, "flipX": true},
         "fancy_dress_box": {"scale": 104},
         "toy_box": {"rotation": -1024, "scaleX": 85, "scaleHeight": 85, "scaleY": 80, "offsetY": 25}
-      },
-      "scale": 128
+      }
     },
     "toa_chest_1": {
       "name": "ToA Chest 1",
-      "category": "containers",
-      "sourceObjectId": 44788,
       "sizeX": 2,
       "sizeY": 2,
       "modelIds": [46279],
@@ -683,7 +592,6 @@
         "TOA_CONTAINERS": [6315, 6348, 6592, 6674, 6817, 6819, 6823, 6825, 6827, 6833, 6837, 6839, 6848, 6856, 6864, 6868, 6872]
       },
       "open": {
-        "sourceObjectId": 44789,
         "modelIds": [46275]
       },
       "placements": {
@@ -691,13 +599,10 @@
         "treasure_chest,toy_box": {"rotation": -1024, "scaleHeight": 96, "scaleY": 96, "offsetY": 16},
         "fancy_dress_box": {"offsetY": 16},
         "armour_case": {"rotation": -1024, "scale": 64}
-      },
-      "scale": 128
+      }
     },
     "toa_chest_2": {
       "name": "ToA Chest 2",
-      "category": "containers",
-      "sourceObjectId": 41696,
       "sizeX": 2,
       "sizeY": 2,
       "modelIds": [46278],
@@ -705,7 +610,6 @@
         "TOA_CONTAINERS": [6315, 6348, 6592, 6674, 6817, 6819, 6823, 6825, 6827, 6833, 6837, 6839, 6848, 6856, 6864, 6868, 6872]
       },
       "open": {
-        "sourceObjectId": 44791,
         "modelIds": [46274]
       },
       "placements": {
@@ -713,13 +617,10 @@
         "treasure_chest,toy_box": {"rotation": -1024, "scaleHeight": 96, "scaleY": 96, "offsetY": 16},
         "fancy_dress_box": {"offsetY": 16},
         "armour_case": {"rotation": -1024, "scale": 64}
-      },
-      "scale": 128
+      }
     },
     "gauntlet_reward_chest": {
       "name": "Gauntlet Reward Chest",
-      "category": "containers",
-      "sourceObjectId": 36087,
       "sizeX": 1,
       "sizeY": 1,
       "modelIds": [37442],
@@ -727,7 +628,6 @@
         "GAUNTLET_CHEST": [-32620, -32614, -32610, 32200, 29518, 29526, 31192, 26776]
       },
       "open": {
-        "sourceObjectId": 36088,
         "modelIds": [37450]
       },
       "placements": {
@@ -735,13 +635,10 @@
         "treasure_chest,toy_box": {"rotation": -1024, "scaleHeight": 80, "scaleY": 70, "offsetY": 10},
         "fancy_dress_box": {"scaleHeight": 80, "scaleY": 100},
         "armour_case": {"rotation": -1024, "offsetY": 10, "scale": 64}
-      },
-      "scale": 128
+      }
     },
     "deadman_supply_chest": {
       "name": "Deadman Supply Chest",
-      "category": "containers",
-      "sourceObjectId": 33125,
       "sizeX": 2,
       "sizeY": 2,
       "modelIds": [34264],
@@ -752,7 +649,6 @@
         "DEADMAN_CHEST": [960, 794, 914]
       },
       "open": {
-        "sourceObjectId": 31583,
         "modelIds": [34265],
         "animationId": -1,
         "spawnAnimationId": -1,
@@ -762,18 +658,14 @@
         "cape_rack": {"rotation": 512, "offsetHeight": -1, "scale": 64},
         "treasure_chest,toy_box": {"rotation": -768, "offsetHeight": -1, "offsetY": 42, "scale": 70},
         "fancy_dress_box": {"rotation": 256, "offsetHeight": -1, "scale": 100}
-      },
-      "scale": 128
+      }
     },
     "cox_thieving_chest": {
       "name": "CoX Thieving Chest",
-      "category": "containers",
-      "sourceObjectId": 29742,
       "sizeX": 1,
       "sizeY": 1,
       "modelIds": [32504],
       "open": {
-        "sourceObjectId": 29743,
         "modelIds": [32465]
       },
       "placements": {
@@ -781,13 +673,10 @@
         "treasure_chest,toy_box": {"rotation": -1024, "scaleX": 250, "offsetY": 16},
         "fancy_dress_box": {"scaleX": 256, "scaleY": 256, "offsetY": 16},
         "armour_case": {"rotation": -1024, "offsetY": 10}
-      },
-      "scale": 128
+      }
     },
     "cox_crystal_chest": {
       "name": "CoX Crystal Chest",
-      "category": "containers",
-      "sourceObjectId": 30027,
       "sizeX": 1,
       "sizeY": 1,
       "modelIds": [32752, 32755],
@@ -799,7 +688,6 @@
         "CRYSTALS": [15296, 15029]
       },
       "open": {
-        "sourceObjectId": 30028,
         "modelIds": [32756],
         "colours": {}
       },
@@ -808,13 +696,10 @@
         "treasure_chest,toy_box": {"scaleY": 192, "offsetY": 16},
         "fancy_dress_box": {"rotation": -512, "scaleX": 256, "scaleY": 256, "offsetY": 16},
         "armour_case": {"offsetY": 16}
-      },
-      "scale": 128
+      }
     },
     "cox_ancient_chest": {
       "name": "CoX Chest",
-      "category": "containers",
-      "sourceObjectId": 30028,
       "sizeX": 1,
       "sizeY": 1,
       "modelIds": [32756],
@@ -827,18 +712,14 @@
         "treasure_chest,toy_box": {"scaleY": 192, "offsetY": 16},
         "fancy_dress_box": {"scaleX": 256, "scaleY": 256, "offsetY": 16},
         "armour_case": {}
-      },
-      "scale": 128
+      }
     },
     "cox_bank_chest": {
       "name": "CoX Bank",
-      "category": "containers",
-      "sourceObjectId": 47419,
       "sizeX": 1,
       "sizeY": 1,
       "modelIds": [47948],
       "open": {
-        "sourceObjectId": 47420,
         "modelIds": [47946]
       },
       "placements": {
@@ -846,13 +727,10 @@
         "treasure_chest,toy_box": {"rotation": 512, "scaleX": 111, "scaleY": 192, "offsetY": 16},
         "fancy_dress_box": {"rotation": -512, "scaleX": 160, "scaleY": 200, "offsetY": 16},
         "armour_case": {"rotation": 512, "offsetY": 16}
-      },
-      "scale": 128
+      }
     },
     "cox_small_storage": {
       "name": "CoX Small Storage",
-      "category": "containers",
-      "sourceObjectId": 29770,
       "sizeX": 1,
       "sizeY": 1,
       "modelIds": [32381],
@@ -862,13 +740,10 @@
         "treasure_chest,toy_box": {"scaleX": 111, "scaleY": 192, "offsetY": 16},
         "fancy_dress_box": {"rotation": -512, "scaleX": 160, "scaleY": 200, "offsetY": 16},
         "armour_case": {"offsetY": 16}
-      },
-      "scale": 128
+      }
     },
     "cox_medium_storage": {
       "name": "CoX Medium Storage",
-      "category": "containers",
-      "sourceObjectId": 29779,
       "sizeX": 1,
       "sizeY": 1,
       "modelIds": [32520],
@@ -878,13 +753,10 @@
         "treasure_chest,toy_box": {"scaleX": 111, "scaleY": 192, "offsetY": 16},
         "fancy_dress_box": {"rotation": -512, "scaleX": 160, "scaleY": 200, "offsetY": 16},
         "armour_case": {"offsetY": 16}
-      },
-      "scale": 128
+      }
     },
     "cox_large_storage": {
       "name": "CoX Large Storage",
-      "category": "containers",
-      "sourceObjectId": 29780,
       "sizeX": 1,
       "sizeY": 1,
       "modelIds": [32515],
@@ -894,13 +766,10 @@
         "treasure_chest,toy_box": {"scaleX": 111, "scaleY": 192, "offsetY": 16},
         "fancy_dress_box": {"rotation": -512, "scaleX": 160, "scaleY": 200, "offsetY": 16},
         "armour_case": {"offsetY": 16}
-      },
-      "scale": 128
+      }
     },
     "cox_massive_storage": {
       "name": "CoX Massive Storage",
-      "category": "containers",
-      "sourceObjectId": 37978,
       "sizeX": 1,
       "sizeY": 1,
       "modelIds": [39583],
@@ -910,13 +779,10 @@
         "treasure_chest,toy_box": {"scaleX": 111, "scaleY": 192, "offsetY": 16},
         "fancy_dress_box": {"rotation": -512, "scaleX": 160, "scaleY": 200, "offsetY": 16},
         "armour_case": {"offsetY": 16}
-      },
-      "scale": 128
+      }
     },
     "colourless_crystal": {
       "name": "Colourless Crystal",
-      "category": "crystals",
-      "sourceObjectId": 29757,
       "sizeX": 2,
       "sizeY": 2,
       "modelIds": [32502],
@@ -926,15 +792,12 @@
       },
       "placements": {
         "cape_rack,armour_case": {"scaleX": 64, "scaleY": 64},
-        "treasure_chest,toy_box": {"scaleX": 80, "scaleY": 64},
+        "treasure_chest,toy_box": {"scaleX": 80, "scaleY": 64, "offsetY": 26},
         "fancy_dress_box": {}
-      },
-      "scale": 128
+      }
     },
     "cox_large_crystal": {
       "name": "CoX Green Crystal",
-      "category": "crystals",
-      "sourceObjectId": 29794,
       "sizeX": 2,
       "sizeY": 2,
       "modelIds": [32502],
@@ -943,15 +806,12 @@
       },
       "placements": {
         "cape_rack,armour_case": {"scaleX": 64, "scaleY": 64},
-        "treasure_chest,toy_box": {"scaleX": 80, "scaleY": 64},
+        "treasure_chest,toy_box": {"scaleX": 80, "scaleY": 64, "offsetY": 26},
         "fancy_dress_box": {}
-      },
-      "scale": 128
+      }
     },
     "cox_crystal_bomb": {
       "name": "CoX Bomb",
-      "category": "crystals",
-      "sourceObjectId": 29766,
       "sizeX": 1,
       "sizeY": 1,
       "modelIds": [32690],
@@ -963,13 +823,10 @@
         "cape_rack,armour_case": {"scaleX": 192, "scaleHeight": 180, "scaleY": 192, "offsetHeight": -4},
         "treasure_chest,toy_box": {"scaleX": 336, "scaleHeight": 210, "scaleY": 224, "offsetHeight": -4},
         "fancy_dress_box": {"scaleX": 384, "scaleHeight": 240, "scaleY": 256, "offsetHeight": -4}
-      },
-      "scale": 128
+      }
     },
     "crystal_outcrop": {
       "name": "Crystal Outcrop",
-      "category": "crystals",
-      "sourceObjectId": 4928,
       "sizeX": 1,
       "sizeY": 1,
       "modelIds": [4895],
@@ -980,13 +837,10 @@
         "treasure_chest,toy_box": {"scaleX": 160, "scaleY": 96},
         "cape_rack,armour_case": {},
         "fancy_dress_box": {"scaleX": 256, "scaleY": 256}
-      },
-      "scale": 128
+      }
     },
     "tob_teleport_crystal": {
       "name": "ToB Teleport Crystal",
-      "category": "crystals",
-      "sourceObjectId": 32996,
       "sizeX": 1,
       "sizeY": 1,
       "modelIds": [35449],
@@ -996,56 +850,43 @@
       },
       "placements": {
         "cape_rack": {}
-      },
-      "scale": 128
+      }
     },
     "armour_display": {
       "name": "Armour Display",
-      "category": "armour",
-      "sourceObjectId": 21447,
       "sizeX": 1,
       "sizeY": 1,
       "modelIds": [21990],
       "placements": {
         "armour_case": {"rotation": -512}
-      },
-      "scale": 128
+      }
     },
     "armadyl_armour": {
       "name": "Armadyl Armour",
-      "category": "armour",
-      "sourceObjectId": 31904,
       "sizeX": 1,
       "sizeY": 1,
       "modelIds": [34556, 34567],
       "placements": {
         "armour_case": {"rotation": 1024}
-      },
-      "scale": 128
+      }
     },
     "bandos_armour": {
       "name": "Bandos Armour",
-      "category": "armour",
-      "sourceObjectId": 31903,
       "sizeX": 1,
       "sizeY": 1,
       "modelIds": [34556, 34553],
       "placements": {
         "armour_case": {"rotation": 1024}
-      },
-      "scale": 128
+      }
     },
     "justiciar_armour": {
       "name": "Justiciar Armour",
-      "category": "armour",
-      "sourceObjectId": 33012,
       "sizeX": 1,
       "sizeY": 1,
       "modelIds": [35412],
       "placements": {
         "armour_case": {"rotation": 1024}
-      },
-      "scale": 128
+      }
     }
   }
 }
