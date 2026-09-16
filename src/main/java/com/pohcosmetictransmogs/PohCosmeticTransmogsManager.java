@@ -675,6 +675,11 @@ class PohCosmeticTransmogsManager
 			anchor = offsetAnchor(anchor, baseOrientation,
 				calibration.getOffsetX(), calibration.getOffsetY());
 		}
+		if (calibration.getWorldOffsetX() != 0 || calibration.getWorldOffsetY() != 0)
+		{
+			anchor = new LocalPoint(anchor.getX() + calibration.getWorldOffsetX(),
+				anchor.getY() + calibration.getWorldOffsetY(), anchor.getWorldView());
+		}
 		int occupiedSpan = Math.max(definition.getSizeX(), definition.getSizeY());
 		int radius = Math.max(60, 64 * occupiedSpan - 4);
 		AppliedReplacement desired = new AppliedReplacement(model, worldView, anchor,

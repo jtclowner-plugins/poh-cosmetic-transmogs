@@ -269,6 +269,9 @@ final class Catalogue
 		int offsetX;
 		int offsetHeight;
 		int offsetY;
+		// Fixed displacement within the WorldView: positive X is east, positive Y is north.
+		int worldOffsetX;
+		int worldOffsetY;
 		boolean flipX;
 		TargetSpec.FitMode fitMode;
 
@@ -391,6 +394,8 @@ final class Catalogue
 				footprintScale(selected.scaleY, targetSizeY, recipe.sizeY),
 				selected.offsetX, selected.offsetHeight, selected.offsetY);
 			result.flipX = selected.flipX;
+			result.worldOffsetX = selected.worldOffsetX;
+			result.worldOffsetY = selected.worldOffsetY;
 			return result;
 		}
 
