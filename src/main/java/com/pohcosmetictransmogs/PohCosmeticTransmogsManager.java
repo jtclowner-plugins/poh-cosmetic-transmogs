@@ -553,7 +553,7 @@ class PohCosmeticTransmogsManager
 	{
 		Catalogue.Definition state = binding.appearance.state(open);
 		return loadModel(binding, state, binding.appearance.stateKey(state),
-			binding.calibration(object));
+			binding.calibration());
 	}
 
 	@Nullable
@@ -655,8 +655,8 @@ class PohCosmeticTransmogsManager
 		Catalogue.Alignment alignment = calibration.getAlignment();
 		if (alignment != null && alignment != Catalogue.Alignment.NONE)
 		{
-			int width = calibration.fittedSizeX > 0 ? calibration.fittedSizeX : resolved.appearance.getSizeX();
-			int depth = calibration.fittedSizeY > 0 ? calibration.fittedSizeY : resolved.appearance.getSizeY();
+			int width = resolved.appearance.getSizeX();
+			int depth = resolved.appearance.getSizeY();
 			// Logical tile footprint uses the nearest quarter-turn; ties round up.
 			// Do not use rotated mesh bounds: cosmetic scale/animation must not move the anchor.
 			if (Catalogue.ModelFactory.logicalQuarterTurn(defaultOrientation))
@@ -794,7 +794,7 @@ class PohCosmeticTransmogsManager
 			return null;
 		}
 		Catalogue.Definition definition = target.state(object.getId());
-		Catalogue.Calibration calibration = target.calibration(object);
+		Catalogue.Calibration calibration = target.calibration();
 		Model model = loadModel(target, definition, target.appearance.stateKey(definition), calibration);
 		if (model == null)
 		{
@@ -848,7 +848,7 @@ class PohCosmeticTransmogsManager
 		Model open = loadState(binding, (GameObject) object, true);
 		Model closed = loadState(binding, (GameObject) object, false);
 		Catalogue.Calibration calibration =
-			binding.calibration((GameObject) object);
+			binding.calibration();
 		Model transition = loadTransitionModel(
 			binding, source, appearance.transitionModelId, appearance.transitionAnimationId, calibration);
 		if (open == null || closed == null || transition == null)
@@ -903,7 +903,7 @@ class PohCosmeticTransmogsManager
 			return;
 		}
 		Catalogue.Calibration calibration =
-			binding.calibration((GameObject) object);
+			binding.calibration();
 		PostTransformAnimationController controller =
 			new PostTransformAnimationController(client, transition, calibration, true);
 		controller.setReverseFinished(() ->
@@ -930,7 +930,7 @@ class PohCosmeticTransmogsManager
 		Animation idle = source.getAnimationId() < 0
 			? null : client.loadAnimation(source.getAnimationId());
 		Catalogue.Calibration calibration =
-			binding.calibration((GameObject) object);
+			binding.calibration();
 		replacement.setAnimationController(new ScaleTransitionController(
 			client, idle, calibration, opening, SCALE_TRANSITION_DURATION));
 	}

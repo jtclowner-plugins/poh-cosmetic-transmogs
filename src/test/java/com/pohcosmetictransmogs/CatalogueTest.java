@@ -132,7 +132,7 @@ public class CatalogueTest
 			+ "\"appearances\":{\"gem\":{\"modelIds\":[10],\"placements\":{\"box\":{\"offsetY\":12}}}}}");
 		assertTrue(catalogue.bind(Collections.emptyMap()).isEmpty());
 		TargetBinding binding = catalogue.bind(Map.of("box", "gem")).get(1);
-		assertEquals(12, binding.calibration(1, 1).offsetY);
+		assertEquals(12, binding.calibration().offsetY);
 	}
 
 	@Test
@@ -147,8 +147,8 @@ public class CatalogueTest
 		assertEquals("gem", bindings.get(1).appearance.key);
 		assertSame(bindings.get(1), bindings.get(2));
 		assertSame(bindings.get(1).appearance, bindings.get(3).appearance);
-		assertEquals(200, bindings.get(1).calibration(1, 1).scaleX);
-		assertEquals(300, bindings.get(3).calibration(1, 1).scaleX);
+		assertEquals(200, bindings.get(1).calibration().scaleX);
+		assertEquals(300, bindings.get(3).calibration().scaleX);
 		assertEquals("other", bindings.get(4).appearance.key);
 	}
 
@@ -180,26 +180,6 @@ public class CatalogueTest
 		assertSame(gem, bindings.get(1).state(1));
 		assertSame(gem, bindings.get(2).state(2));
 		assertSame(gem.open, bindings.get(3).state(3));
-	}
-
-	@Test
-	public void targetAndPlacementFitModesRemainIndependentOfModelScale()
-	{
-		Catalogue catalogue = read("{\"targets\":{\"box\":{\"objectIds\":[1],\"defaultFitMode\":\"FOOTPRINT\"}},"
-			+ "\"appearances\":{\"gem\":{\"sizeX\":1,\"sizeY\":1,\"modelIds\":[10],"
-			+ "\"scaleX\":200,\"scaleY\":180,\"scaleHeight\":150}}}");
-		TargetBinding binding = catalogue.bind(Map.of("box", "gem")).get(1);
-		Catalogue.Calibration fit = binding.calibration(2, 3);
-		assertEquals(400, fit.scaleX);
-		assertEquals(540, fit.scaleY);
-		assertEquals(150, fit.scaleHeight);
-		Catalogue.Calibration placement = new Catalogue.Calibration();
-		placement.fitMode = TargetSpec.FitMode.NONE;
-		placement.scaleX = 300;
-		binding.appearance.placements.put("box", placement);
-		assertEquals(300, binding.calibration(2, 3).scaleX);
-		assertEquals(1, binding.appearance.sizeX);
-		assertEquals(200, binding.appearance.scaleX);
 	}
 
 	@Test

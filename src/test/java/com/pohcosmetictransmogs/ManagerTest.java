@@ -350,33 +350,6 @@ public class ManagerTest
 	}
 
 	@Test
-	public void fixedFacingFootprintFitUsesWorldDimensionsOnRotatedTargets()
-	{
-		for (boolean explicitSize : new boolean[] {false, true})
-		{
-			for (int rotation : new int[] {0, 512})
-			{
-				Harness h = new Harness("\"sizeX\":4,\"sizeY\":2,\"inheritRotation\":false,\"rotation\":" + rotation
-					+ ",\"fitMode\":\"FOOTPRINT\",\"alignment\":\"SOUTH_WEST\",");
-				h.orientation = 512;
-				h.sizeX = 3;
-				h.sizeY = 2;
-				if (explicitSize)
-				{
-					Catalogue.current.targets.get("box").sizeX = 2;
-					Catalogue.current.targets.get("box").sizeY = 3;
-				}
-				h.manager.addObject(h.object(1));
-				assertEquals(rotation, h.only().getOrientation());
-				assertEquals(832, h.only().getLocation().getX());
-				assertEquals(768, h.only().getLocation().getY());
-				assertTrue(h.operations.contains(rotation == 0 ? "scale:96:128:128" : "scale:64:128:192"));
-				h.manager.stop();
-			}
-		}
-	}
-
-	@Test
 	public void placementOverridesCanResetAlignmentAndRotationInheritance()
 	{
 		Harness h = new Harness("\"sizeX\":4,\"sizeY\":2,\"alignment\":\"SOUTH_WEST\",\"inheritRotation\":false,"

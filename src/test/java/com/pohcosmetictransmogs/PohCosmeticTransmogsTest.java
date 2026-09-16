@@ -334,7 +334,7 @@ public class PohCosmeticTransmogsTest
 		Catalogue.Definition definition = definition(objectId);
 		assertNotNull(definition);
 		return Catalogue.ModelFactory.calibration(Catalogue.current.appearances.get(key(objectId)),
-			target(furniture), target(furniture).sizeX, target(furniture).sizeY);
+			target(furniture));
 	}
 
 	private static int state(int sourceObjectId, int targetObjectId)

@@ -2,52 +2,38 @@
   "targets": {
     "entrance_portal": {
       "objectIds": [4525, 60789],
-      "sizeX": 2,
-      "sizeY": 2,
       "scaleTransition": true,
       "portalRecolour": true
     },
     "cape_rack": {
       "objectIds": [18766, 18767, 18768, 18769, 18770, 18771],
-      "sizeX": 1,
-      "sizeY": 1,
       "scaleTransition": true
     },
     "treasure_chest": {
       "objectIds": [18804, 18805, 18806, 18807, 18808, 18809],
       "openObjectIds": [18805, 18807, 18809],
-      "sizeX": 2,
-      "sizeY": 1,
       "orientationOffset": -1024,
       "scaleTransition": true
     },
     "fancy_dress_box": {
       "objectIds": [18772, 18773, 18774, 18775, 18776, 18777],
       "openObjectIds": [18773, 18775, 18777],
-      "sizeX": 2,
-      "sizeY": 2,
       "scaleTransition": true
     },
     "armour_case": {
       "objectIds": [18778, 18779, 18780, 18781, 18782, 18783],
       "openObjectIds": [18779, 18781, 18783],
-      "sizeX": 1,
-      "sizeY": 1,
       "orientationOffset": 512
     },
     "toy_box": {
       "objectIds": [18798, 18799, 18800, 18801, 18802, 18803],
       "openObjectIds": [18799, 18801, 18803],
-      "sizeX": 2,
-      "sizeY": 1,
       "orientationOffset": -1024,
       "scaleTransition": true
     },
     "magic_wardrobe": {
       "objectIds": [18784, 18785, 18786, 18787, 18788, 18789, 18790, 18791, 18792, 18793, 18794, 18795, 18796, 18797],
       "openObjectIds": [18785, 18787, 18789, 18791, 18793, 18795, 18797],
-      "sizeX": 1,
-      "sizeY": 3,
       "orientationOffset": 512
     }
   },

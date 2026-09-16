@@ -6,18 +6,9 @@ final class TargetSpec
 	String key;
 	int[] objectIds = {};
 	int[] openObjectIds = {};
-	int sizeX;
-	int sizeY;
 	int orientationOffset;
 	boolean scaleTransition;
 	boolean portalRecolour;
-	FitMode defaultFitMode = FitMode.NONE;
-
-	enum FitMode
-	{
-		NONE,
-		FOOTPRINT
-	}
 
 	boolean isOpen(int objectId)
 	{
