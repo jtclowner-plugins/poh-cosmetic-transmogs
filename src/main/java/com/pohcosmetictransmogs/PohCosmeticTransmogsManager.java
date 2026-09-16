@@ -61,7 +61,7 @@ class PohCosmeticTransmogsManager
 	private final Set<WorldView> pendingSceneScans = identitySet();
 	private final Set<ZoneKey> pendingZoneInvalidations = new HashSet<>();
 	private final Set<TileObject> pendingSuppressionChanges = identitySet();
-	private final Map<Integer, Integer> visiblePlanes = new HashMap<>();
+	private final Map<WorldView, Integer> visiblePlanes = new IdentityHashMap<>();
 	private final Set<String> playedSpawnAnimations = new HashSet<>();
 	private volatile Set<TileObject> suppressedSnapshot = Collections.emptySet();
 	private volatile Set<TileObject> activeSnapshot = Collections.emptySet();
@@ -307,7 +307,7 @@ class PohCosmeticTransmogsManager
 	void removeWorldView(WorldView worldView)
 	{
 		pendingSceneScans.remove(worldView);
-		visiblePlanes.remove(worldView.getId());
+		visiblePlanes.remove(worldView);
 		worldViews.remove(worldView);
 		beginZoneInvalidationBatch();
 		try
@@ -441,15 +441,35 @@ class PohCosmeticTransmogsManager
 
 	void syncVisibleLevels()
 	{
-		boolean changed = false;
+		if (!running)
+		{
+			return;
+		}
 		for (WorldView worldView : worldViews)
 		{
-			Integer previous = visiblePlanes.put(worldView.getId(), worldView.getPlane());
-			changed |= previous == null || previous != worldView.getPlane();
-		}
-		if (changed)
-		{
-			refreshAllObjects();
+			int plane = worldView.getPlane();
+			Integer previous = visiblePlanes.get(worldView);
+			if (previous != null && previous == plane)
+			{
+				continue;
+			}
+			visiblePlanes.put(worldView, plane);
+			beginZoneInvalidationBatch();
+			try
+			{
+				for (TileObject object : sceneObjects)
+				{
+					if (object.getWorldView() == worldView && (previous == null
+						|| isVisibleLevel(object.getPlane(), previous) != isVisibleLevel(object.getPlane(), plane)))
+					{
+						refreshObject(object);
+					}
+				}
+			}
+			finally
+			{
+				endZoneInvalidationBatch();
+			}
 		}
 	}
 
