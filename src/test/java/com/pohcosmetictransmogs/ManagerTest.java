@@ -547,6 +547,10 @@ public class ManagerTest
 		replacement.getModel();
 		assertTrue(h.operations.contains("scale:160:160:160"));
 		assertTrue(h.operations.contains("translate:0:-5:0"));
+		h.operations.clear();
+		replacement.getModel();
+		assertTrue(h.operations.contains("scale:160:160:160"));
+		assertTrue(h.operations.contains("translate:0:-5:0"));
 		h.manager.removeObject(open);
 		h.manager.addObject(h.object(1));
 		replacement = h.only();

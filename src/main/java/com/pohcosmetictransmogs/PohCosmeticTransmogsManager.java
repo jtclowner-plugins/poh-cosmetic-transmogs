@@ -1505,19 +1505,16 @@ class PohCosmeticTransmogsManager
 
 	private static final class ScaleTransitionController extends AnimationController
 	{
-		private final Client client;
 		private static final int OPEN_SCALE = 160;
 		private final Catalogue.Calibration calibration;
 		private final boolean opening;
 		private final int duration;
 		private int elapsed;
-		private Model finalPose;
 
 		private ScaleTransitionController(Client client, @Nullable Animation animation,
 			Catalogue.Calibration calibration, boolean opening, int duration)
 		{
 			super(client, animation);
-			this.client = client;
 			this.calibration = calibration;
 			this.opening = opening;
 			this.duration = duration;
@@ -1536,10 +1533,6 @@ class PohCosmeticTransmogsManager
 		@Override
 		public Model animate(Model model, @Nullable AnimationController other)
 		{
-			if (finalPose != null)
-			{
-				return finalPose;
-			}
 			Model posed = super.animate(model, other);
 			if (getAnimation() != null)
 			{
@@ -1551,11 +1544,6 @@ class PohCosmeticTransmogsManager
 			int scale = opening ? 128 + delta : OPEN_SCALE - delta;
 			posed.scale(scale, scale, scale);
 			posed.translate(0, bottom - bottom * scale / 128, 0);
-			if (elapsed == duration && getAnimation() == null && other == null)
-			{
-				// Animation transforms use scratch models; retain an independent copy.
-				finalPose = client.mergeModels(posed);
-			}
 			return posed;
 		}
 	}
